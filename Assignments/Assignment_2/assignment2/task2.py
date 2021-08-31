@@ -66,25 +66,31 @@ def get_task_2f(x_bar: ndarray, P: ndarray,
         x_bar_r (ndarray): state estimate after measurement r
         P_r (ndarray): covariance of x_bar_r
     """
-    # This function acts as a method for creating the a posteriori
-    # estimate of the kalman filter
-    z = np.array([[z_c], [z_r]])
-    H = np.concatenate((H_c, H_r), axis=0)
-    R = np.concatenate((R_c, R_r), axis=0)
+    x_bar_c = condition_mean(x_bar, P, z_c, R_c, H_c)
+    P_c = condition_cov(P, R_c, H_c)
 
-    PH = np.matmul(P, np.transpose(H))
-    W = np.matmul(np.transpose(PH), np.transpose(H)) + R
-    KF = np.matmul(PH, np.linalg.inv(W))
-
-    x_k = x_bar + np.matmul(KF, (z - np.matmul(H, x_bar)))
-    P_k = np.matmul((np.eye(len(KF)) - KF), P)
-
-    x_bar_c = x_k[0,:]
-    P_c = P_k[0,:]
-    x_bar_r = x_k[1,:]
-    P_r = P_k[1,:]
+    x_bar_r = condition_mean(x_bar, P, z_r, R_r, H_r)
+    P_r = condition_cov(P, R_r, H_r)
 
     return x_bar_c, P_c, x_bar_r, P_r
+
+    # z = np.array([[z_c], [z_r]])
+    # H = np.concatenate((H_c, H_r), axis=0)
+    # R = np.concatenate((R_c, R_r), axis=0)
+
+    # PH = np.matmul(P, np.transpose(H))
+    # W = np.matmul(np.transpose(PH), np.transpose(H)) + R
+    # KF = np.matmul(PH, np.linalg.inv(W))
+
+    # x_k = x_bar + np.matmul(KF, (z - np.matmul(H, x_bar)))
+    # P_k = np.matmul((np.eye(len(KF)) - KF), P)
+
+    # x_bar_c = x_k[0,:]
+    # P_c = P_k[0,:]
+    # x_bar_r = x_k[1,:]
+    # P_r = P_k[1,:]
+
+    # return x_bar_c, P_c, x_bar_r, P_r
 
 
 def get_task_2g(x_bar_c: ndarray, P_c: ndarray,
