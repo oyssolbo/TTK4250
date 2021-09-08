@@ -31,29 +31,47 @@ class EKF:
                 state_upd_prev_gauss: MultiVarGaussian,
                 Ts: float,
                 ) -> MultiVarGaussian:
-        """Predict the EKF state Ts seconds ahead."""
+        """
+        Predict the EKF state Ts seconds ahead.
+        """
+        # Extract the previous states
+        x_prev = state_upd_prev_gauss.mean
+        P_prev = state_upd_prev_gauss.cov
+    
+        # Calculate the linearized states and noise matrix
+        F = self.dynamic_model.F(x_prev, Ts)
+        Q = self.dynamic_model.Q(x_prev, Ts)
 
-        # TODO replace this with your own code
-        state_pred_gauss = solution.ekf.EKF.predict(
-            self, state_upd_prev_gauss, Ts)
+        # Calculate the predicted mean and covariance
+        x_bar = self.dynamic_model.f(x_prev, Ts)
+        P_bar = F @ P_prev @ F.T + Q
 
+        state_pred_gauss = MultiVarGaussian(x_bar, P_bar)
+        #state_pred_gauss = solution.ekf.EKF.predict(
+        #    self, state_upd_prev_gauss, Ts)
         return state_pred_gauss
 
     def predict_measurement(self,
                             state_pred_gauss: MultiVarGaussian
                             ) -> MultiVarGaussian:
-        """Predict measurement pdf from using state pdf and model."""
+        """
+        Predict measurement pdf from using state pdf and model.
+        """
+        # Calculate the measurement matrices
         x_bar, P = state_pred_gauss
         H = self.sensor_model.H(x_bar)
         R = self.sensor_model.R(x_bar)
-        z_bar = np.zeros(2)  # TODO
-        S = np.eye(2)  # TODO
-        measure_pred_gauss = MultiVarGaussian(z_bar, S)
 
-        # TODO replace this with your own code
-        measure_pred_gauss = solution.ekf.EKF.predict_measurement(
-            self, state_pred_gauss)
+        # Calculate the predicted mean and covariance
+        z_bar = self.sensor_model.h(x_bar)
+        S = H @ P @ H.T + R
 
+        print(z_bar)
+        print(S)
+
+        measure_pred_gauss = MultiVarGaussian(z_bar, S)     
+        # measure_pred_gauss = solution.ekf.EKF.predict_measurement(
+        #     self, state_pred_gauss)
         return measure_pred_gauss
 
     def update(self,
@@ -61,22 +79,30 @@ class EKF:
                state_pred_gauss: MultiVarGaussian,
                measurement_gauss: Optional[MultiVarGaussian] = None,
                ) -> MultiVarGaussian:
-        """Given the prediction and innovation, 
-        find the updated state estimate."""
+        """
+        Given the prediction and innovation, 
+        find the updated state estimate.
+        """
+        # Extract predicted data
         x_pred, P = state_pred_gauss
         if measurement_gauss is None:
             measurement_gauss = self.predict_measurement(state_pred_gauss)
 
         z_bar, S = measurement_gauss
         H = self.sensor_model.H(x_pred)
-        x_upd = np.zeros(2)  # TODO
-        P_upd = np.eye(2)  # TODO
+
+        z_diff = z - z_bar
+
+        # Calculate Kalman gain
+        W = P @ H.T @ np.linalg.inv(S)
+
+        # Update
+        x_upd = x_pred + W @ z_diff
+        P_upd = (np.eye(len(P)) - W @ H) @ P
+
         state_upd_gauss = MultiVarGaussian(x_upd, P_upd)
-
-        # TODO replace this with your own code
-        state_upd_gauss = solution.ekf.EKF.update(
-            self, z, state_pred_gauss, measurement_gauss)
-
+        # state_upd_gauss = solution.ekf.EKF.update(
+        #     self, z, state_pred_gauss, measurement_gauss)
         return state_upd_gauss
 
     def step_with_info(self,
@@ -95,11 +121,12 @@ class EKF:
                 The measurement prediction after state prediction
             state_upd_gauss: The predicted state updated with measurement
         """
+        state_pred_gauss = self.predict(state_upd_prev_gauss, Ts)
+        measurement_pred_gauss = self.predict_measurement(state_pred_gauss)
+        state_upd_gauss = self.update(z, state_pred_gauss, measurement_pred_gauss)        
 
-        # TODO replace this with your own code
-        state_pred_gauss, measurement_pred_gauss, state_upd_gauss = solution.ekf.EKF.step_with_info(
-            self, state_upd_prev_gauss, z, Ts)
-
+        # state_pred_gauss, measurement_pred_gauss, state_upd_gauss = solution.ekf.EKF.step_with_info(
+        #     self, state_upd_prev_gauss, z, Ts)
         return state_pred_gauss, measurement_pred_gauss, state_upd_gauss
 
     def step(self,
