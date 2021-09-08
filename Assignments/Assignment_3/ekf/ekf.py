@@ -66,9 +66,6 @@ class EKF:
         z_bar = self.sensor_model.h(x_bar)
         S = H @ P @ H.T + R
 
-        print(z_bar)
-        print(S)
-
         measure_pred_gauss = MultiVarGaussian(z_bar, S)     
         # measure_pred_gauss = solution.ekf.EKF.predict_measurement(
         #     self, state_pred_gauss)

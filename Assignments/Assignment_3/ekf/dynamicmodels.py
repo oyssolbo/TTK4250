@@ -76,14 +76,7 @@ class WhitenoiseAcceleration2D(DynamicModel):
         Calculate the zero noise Ts time units transition from x.
         See DynamicModel for variable documentation
         """
-        F = np.array(
-            [
-                [1, 0, Ts, 0], 
-                [0, 1, 0, Ts],
-                [0, 0, 1, 0], 
-                [0, 0, 0, 1]
-            ]
-        )
+        F = self.F(x, Ts)
         x_kp1 = F @ x
         # x_kp1 = solution.dynamicmodels.WhitenoiseAcceleration2D.f(self, x, Ts)
         return x_kp1
