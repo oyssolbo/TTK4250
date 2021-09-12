@@ -135,7 +135,17 @@ def get_task_2h(x_bar_rc: ndarray, P_rc: ndarray):
     which due to X being a gaussian gives that Y is a gaussian satisfying
     Y ~ N(y; [-1, 1] E[x_hat], [-1, 1] Cov[x_hat] [-1, 1]^T)
 
-    However I cannot find a way to 
+    Using the linearity of the gaussian, we know that Y is then also 
+    a gaussian determined by 
+    Y ~ N([-1 1]x_hat, [-1 1] P [-1 1]^T)
+
+    where one could find the likelihood of Y > 5 as
+
+    P(Y > 5) = 1 - P(Y <= 5) = 1 - phi(5 / (sqrt(50)))
+
+    but when calculating this by hand, I get a likelihood of roughly 0.2398
+    which is wrong according to the solution.task2.get_task_2h which gives
+    0.8710308654292277
     """
     # TODO replace this with your own code
     prob_above_line = solution.task2.get_task_2h(x_bar_rc, P_rc)
