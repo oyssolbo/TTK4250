@@ -76,26 +76,9 @@ class WhitenoiseAcceleration2D(DynamicModel):
         Calculate the zero noise Ts time units transition from x.
         See DynamicModel for variable documentation
         """
-        F = np.array([[1, 0, Ts, 0], 
-                    [0, 1, 0, Ts],
-                    [0, 0, 1, 0], 
-                    [0, 0, 0, 1]]
-                )
-        Q = np.array([[1/3 * Ts**3, 0, 1/2 * Ts**2, 0], 
-                    [0, 1/3 * Ts**3, 0, 1/2 * Ts**2],
-                    [1/2 * Ts**2, 0, Ts, 0], 
-                    [0, 1/2 * Ts**2, 0, Ts]]
-                ) * self.sigma_a**2
-        
-        mean = np.array([0, 0, 0, 0])
-
-        v = np.random.multivariate_normal(mean=mean, cov=Q)
-        
-        x_kp1 = F * x + v
-
-        if x_kp1 != solution.dynamicmodels.WhitenoiseAcceleration2D.f(self, x, Ts):
-            print("Incorrect solution for x_kp1")
-            x_kp1 = solution.dynamicmodels.WhitenoiseAcceleration2D.f(self, x, Ts)
+        F = self.F(x, Ts)
+        x_kp1 = F @ x
+        # x_kp1 = solution.dynamicmodels.WhitenoiseAcceleration2D.f(self, x, Ts)
         return x_kp1
 
     def F(self, x: ndarray, Ts: float,) -> ndarray:
@@ -103,17 +86,16 @@ class WhitenoiseAcceleration2D(DynamicModel):
         Calculate the transition function jacobian for Ts time units at x.
         See DynamicModel for variable documentation
         """
-
-        F = np.array([[1, 0, Ts, 0], 
-                    [0, 1, 0, Ts],
-                    [0, 0, 1, 0], 
-                    [0, 0, 0, 1]]
-                )
-
-        if F.T != solution.dynamicmodels.WhitenoiseAcceleration2D.F(self, x, Ts):
-            print("Incorrect solution of F")
-            F.T = solution.dynamicmodels.WhitenoiseAcceleration2D.F(self, x, Ts)
-        return F.T
+        F = np.array(
+            [
+                [1, 0, Ts, 0], 
+                [0, 1, 0, Ts],
+                [0, 0, 1, 0], 
+                [0, 0, 0, 1]
+            ]
+        )
+        # F = solution.dynamicmodels.WhitenoiseAcceleration2D.F(self, x, Ts)
+        return F
 
     def Q(self, x: ndarray, Ts: float,) -> ndarray:
         """
@@ -122,16 +104,15 @@ class WhitenoiseAcceleration2D(DynamicModel):
         See DynamicModel for variable documentation
         """
         # From 4.64 we know that 
-        Q = np.array([[1/3 * Ts**3, 0, 1/2 * Ts**2, 0], 
-                    [0, 1/3 * Ts**3, 0, 1/2 * Ts**2],
-                    [1/2 * Ts**2, 0, Ts, 0], 
-                    [0, 1/2 * Ts**2, 0, Ts]]
-                ) * self.sigma_a**2
-        
-        if Q != solution.dynamicmodels.WhitenoiseAcceleration2D.Q(self, x, Ts):
-            print("Incorrect solution for Q")
-            Q = solution.dynamicmodels.WhitenoiseAcceleration2D.Q(self, x, Ts)
-
+        Q = np.array(
+            [
+                [1/3 * Ts**3, 0, 1/2 * Ts**2, 0], 
+                [0, 1/3 * Ts**3, 0, 1/2 * Ts**2],
+                [1/2 * Ts**2, 0, Ts, 0], 
+                [0, 1/2 * Ts**2, 0, Ts]
+            ]
+        ) * self.sigma_a**2
+        # Q = solution.dynamicmodels.WhitenoiseAcceleration2D.Q(self, x, Ts)
         return Q
 
 
