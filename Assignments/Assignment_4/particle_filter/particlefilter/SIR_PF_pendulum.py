@@ -38,9 +38,8 @@ def get_dynamic_parameters():
 
 
 def get_measurement_parameters():
-    # TODO: change these in (b)
     Ld = 4
-    Ll = 0
+    Ll = 1
     r = 0.25
     return Ld, Ll, r
 
@@ -144,7 +143,7 @@ def init_PF(rng: np.random):
         weights (ndarray): normalized weights. shape = (N,)
     """
     # Number of particles to use
-    N = 1000
+    N = 200
 
     # Initialize particles
     Ld, Ll, r = get_measurement_parameters()
@@ -187,7 +186,7 @@ def weight_update(
         # print(meas_noise_dist.pdf(zk - h(pxn)))
         w_upd[n] = meas_noise_dist.pdf(zk - h(pxn)) + w[n]
     w_upd = w_upd / np.linalg.norm(w_upd)
-    print(w_upd)
+    # print(w_upd)
 
     # w_upd = solution.SIR_PF_pendulum.weight_update(
     #     zk, px, w, h, meas_noise_dist)
@@ -221,7 +220,7 @@ def resample(
     i = 0
     for n in range(N):
         u_n = n / N + noise
-        while u_n > total_weight[n]:
+        while u_n > total_weight[i]:
             i += 1
         pxn[n] = px[i]
 
@@ -250,8 +249,8 @@ def particle_prediction(
     """
     px_pred = zeros_like(px)
     for n, pxn in enumerate(px):
-        vkn = proc_noise_dist.rvs
-        px_pred[n] = f(n, pxn, Ts) + vkn
+        vkn = proc_noise_dist.rvs()
+        px_pred[n] = f(pxn, vkn, Ts)
 
     # px_pred = solution.SIR_PF_pendulum.particle_prediction(
     #     px, Ts, f, proc_noise_dist)
@@ -298,6 +297,7 @@ def run_SIR_PF(rng, Ts, l, f, x, h, Z, px, w,
         w = weight_update(zk, px, w, h, PF_measurement_distribution)
 
         pxn = resample(px, w, rng)
+        # pxn = px
 
         px = particle_prediction(
             pxn, Ts, f, PF_dynamic_distribution)
@@ -346,3 +346,57 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# %% Comments for task 5
+
+# Task 5a)
+# The particle filter generates an estimate that looks like it is constantly 
+# lagging behind the actual state. This was developed using resampling, but
+# the estimated (resampled) state looks like it is lagging pi/2 rad behind the
+# actual response. Since the system responds so quickly, this is totally
+# unacceptable to accheive any form of control, unless you utilize feed-forward 
+# terms heavily
+
+# I retried using 1000 particles instead of 100, and one can see that the 
+# response is better, however now I have the problem that the estimated 
+# angle's phase is switching between being ahead and behing the actual angle. 
+# At around 200-250 timestamps somewhere, I also noticed that the particle
+# estimate starts oscillating around zero and completely disregards the 
+# measurements/actual angle.     
+
+# Could I have possibly done something wrong during the assignment?
+
+
+
+# Task 5b)
+# Based on a), I was honestly not expecting any change by just modifying L1 to
+# 0.5, however it did. The particle filter was far better into following the 
+# actual measurement, and did not get out of phase as in a)
+
+# Trying to set L1 = 1 makes the particle filter overshoot, and it looks like 
+# is is slightly out of phase/has a higher frequency compared to the actual
+# angle. This implies - assuming that I have not done a stupid error when 
+# programming - that there is a nice value between 0 and 1 that makes the
+# estimate be relatively equal to the actual angle.
+
+# This is likely because of that increasing L1 reduces the effect from 
+# the noise compared to the measurements, having a too large value makes it 
+# difficult for the camera to measure the changes in the maximum and minimum 
+# in both x and y-direction.
+
+# I will not bother finding a better value for L1, as I am actually quite 
+# pleased with L1 = 0.5
+
+
+
+# Task 5c)
+# From the lectures it was mentioned that EKF (or other KF) will struggle when
+# the system is no longer gaussian. Either through linearization, or that the
+# noise is a complex structure, the assumption that the noise is gaussian will
+# likely be incorrect. In reality, most systems will suffer with bias and other
+# skewness as well. Even though these could be approximated using ESKF or ESEKF,
+# it would complicate the matter, and would likely be better to just use a 
+# particle filter instead. 
+
+
+

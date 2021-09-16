@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import ndarray
+from numpy.core.numeric import zeros_like
 
 import solution
 
@@ -24,15 +25,19 @@ def mixture_moments(weights: ndarray,
 
     # Internal covariance
     # I assume that we are talking about \Sigma_{i=1}^{M} w_i P_i
-    # cov_internal = weights.T @ covs
-    # cov_internal = np.zeros(len(weights))
-    # for i in range(len(weights)):
-    #     cov_internal += weights[i] * covs[i]
+    # N = covs.shape[0]
+    # n = covs.shape[1]
+    # cov_internal = np.zeros(N)
+    # for i in range(N):
+    #     print(covs[i])
+    #     print(covs[i][0:n,0:n])
+    #     print(weights[i])
+    #     print(covs[i].shape)
+    #     print(weights[i].shape)
+    #     cov_internal += weights[i] * covs[i][0:n,0:n]
     cov_internal = np.average(covs, axis=0, weights=weights)
 
     # Spread of means, aka. external covariance
-    # [diffs] = 1 x N
-    # [cov_external] = 1 x N - n x n 
     # diffs = weights.T @ means @ means
     diffs = means - mean[np.newaxis]
     # cov_external = diffs - mean.T @ mean
