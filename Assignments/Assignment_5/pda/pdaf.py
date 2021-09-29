@@ -11,6 +11,7 @@ from utils.ekf import EKF
 
 import solution
 
+from math import sqrt
 
 
 @dataclass
@@ -138,23 +139,21 @@ class PDAF:
 
         # Calculating for i == 0
         # associations_probs[0] = (1-P_D)*m*poi_m / poi_m_1
-        associations_probs[0] = m/V * (1-P_D*P_G)
+        associations_probs[0] = m/V * (1 - P_D*P_G)
 
         # Calculating for i > 0
-        for i in range(1, m): 
-            # I_i = # This makes no sence for me! I need a method for 
-            # calulating the value for I_i. This is due to this will be a pdf and
-            # will not give a number that could be used later for calculating 
-            I_i = 1  
-            associations_probs[i] = P_D*I_i
+        for i in range(1, m):  
+            mah_dist = sqrt(z_pred_gauss.mahalanobis_distance_sq(gated_measurements[i]))
+            I_i = 1 - mah_dist / (1 + mah_dist) 
+            associations_probs[i] = P_G*P_D*I_i
 
         if associations_probs.sum() == 0:
             # Unable to normalize 
             assert 0
-        associations_probs = associations_probs / associations_probs.sum()
+        associations_probs /= associations_probs.sum()
 
-        associations_probs = solution.pdaf.PDAF.get_association_prob(
-            self, z_pred_gauss, gated_measurements)
+        # associations_probs = solution.pdaf.PDAF.get_association_prob(
+        #     self, z_pred_gauss, gated_measurements)
         return associations_probs
 
     def get_cond_update_gaussians(
@@ -181,22 +180,22 @@ class PDAF:
         Returns:
             Sequence[MultiVarGaussian]: The sequence of conditional updates
         """
-        # Since the gated measurements have been truncated, this must also
-        # be done to f_z to maintain scaling
-        P_G = self.gate_percentile
+        # # Since the gated measurements have been truncated, this must also
+        # # be done to f_z to maintain scaling
+        # P_G = self.gate_percentile
 
-        # Extract previous states
-        state_pred_mean = state_pred_gauss.mean     # x_hat_k|k-1
-        state_pred_cov = state_pred_gauss.cov       # P_k|k-1
+        # # Extract previous states
+        # state_pred_mean = state_pred_gauss.mean     # x_hat_k|k-1
+        # state_pred_cov = state_pred_gauss.cov       # P_k|k-1
 
-        z_pred_mean = z_pred_gauss.mean / P_G       # z_hat_k|k-1 = Hx_hat_k|k-1
-        z_pred_cov = z_pred_gauss.cov / (P_G**2)    # S_k = HP_k|k-1H^T + R
+        # z_pred_mean = z_pred_gauss.mean / P_G       # z_hat_k|k-1 = Hx_hat_k|k-1
+        # z_pred_cov = z_pred_gauss.cov / (P_G**2)    # S_k = HP_k|k-1H^T + R
 
-        H = z_pred_mean @ state_pred_mean.T
+        # H = z_pred_mean @ state_pred_mean.T
 
-        # Calculate the kalman gain (assuming that the same one will be used for 
-        # all measurements)
-        W = state_pred_cov @ H.T @ np.linalg.inv(z_pred_cov)
+        # # Calculate the kalman gain (assuming that the same one will be used for 
+        # # all measurements)
+        # W = state_pred_cov @ H.T @ np.linalg.inv(z_pred_cov)
 
         # Allocating memory
         n = len(gated_measurements)
@@ -205,18 +204,10 @@ class PDAF:
         # Get the associated probabilities
         associated_probs = self.get_association_prob(z_pred_gauss, gated_measurements)
 
-        # Iterate over the associated probabilities
-        # OBS! This assumes that multiple of the states could occur simultaneously
-        # We would like to have that value number 0 is equivalent to no measurment being correct
-        # value 1 being the state when measurment 0 is correct and etc
+        # Iterate over the associated probabilities and calculate the posteriori state given
+        # that the associated measurement is correct 
         for i in range(len(associated_probs)):
-            prob = associated_probs[i]
-            if prob == 0:
-                # Is this correct? 
-                update_gaussians[i] = np.random.multivariate_normal(state_pred_mean, state_pred_cov)
-            else:
-                innov = z_pred_gauss - state_pred_mean 
-
+            update_gaussians[i] = associated_probs[i] * state_pred_gauss
 
         # update_gaussians = solution.pdaf.PDAF.get_cond_update_gaussians(
         #     self, state_pred_gauss, z_pred_gauss, gated_measurements)
@@ -226,7 +217,8 @@ class PDAF:
             self, 
             state_pred_gauss: MultiVarGaussian,
             z_pred_gauss: MultiVarGaussian,
-            measurements: Sequence[ndarray]):
+            measurements: Sequence[ndarray]
+            ) ->MultiVarGaussian:
         """
         Perform the update step of the PDA filter
 
@@ -238,11 +230,20 @@ class PDAF:
         Returns:
             state_upd_gauss (MultiVarGaussian): updated state gaussian
         """
+        # Gate the measurements
+        gated_measurements = self.gate(z_pred_gauss=z_pred_gauss, measurements=measurements)
 
+        # Get the conditional associated states
+        cond_states = self.get_cond_update_gaussians(
+                state_pred_gauss=state_pred_gauss, 
+                z_pred_gauss=z_pred_gauss,
+                gated_measurements=gated_measurements)
+
+        gaussian_mixture_class = GaussianMuxture(weights=gated_measurements, gaussians=cond_states)
+        state_upd_gauss = gaussian_mixture_class.reduce()
         
-        state_upd_gauss = solution.pdaf.PDAF.update(
-            self, state_pred_gauss, z_pred_gauss, measurements)
-
+        # state_upd_gauss = solution.pdaf.PDAF.update(
+        #     self, state_pred_gauss, z_pred_gauss, measurements)
         return state_upd_gauss
 
     def step_with_info(
@@ -270,10 +271,12 @@ class PDAF:
             state_upd_gauss (MultiVarGaussian): updated state gaussian
         """
 
-        
-        state_pred_gauss, z_pred_gauss, state_upd_gauss = solution.pdaf.PDAF.step_with_info(
-            self, state_upd_prev_gauss, measurements, Ts)
+        state_pred_gauss = self.predict_state(state_upd_prev_gauss=state_upd_prev_gauss, Ts=Ts)
+        z_pred_gauss = self.predict_measurement(state_pred_gauss=state_pred_gauss)
+        state_upd_gauss = self.update(state_pred_gauss=state_pred_gauss, z_pred_gauss=z_pred_gauss, measurements=measurements)
 
+        # state_pred_gauss, z_pred_gauss, state_upd_gauss = solution.pdaf.PDAF.step_with_info(
+        #     self, state_upd_prev_gauss, measurements, Ts)
         return state_pred_gauss, z_pred_gauss, state_upd_gauss
 
     def step(self, state_upd_prev_gauss, measurements, Ts):
