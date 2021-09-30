@@ -345,8 +345,20 @@ if __name__ == '__main__':
     angular velocity
 
     NIS is useful when the ground truth is not available. It describes the Mahalanobis distance
-    between the measurements and the predicted measurements. By using NIS, we expect that the
-    model is linear. Thu  
+    between the measurements and the predicted measurements. By using NIS, I assume that we
+    compare our trust in the model with the measurements. However due to the model assuming CV,
+    the estimates will be slightly off. Thus, the NIS will always be lagging a bit behind, 
+    unless we make the filter overlyt conservative. It would make the estimates better during
+    turning, but worse during linear movement.
+    
+    Off this reason, I think it would be better to use NEES if we have a "ground truth" to
+    compare with. This allows us to be more independent from the model and modelling errors,
+    such that we could tune based on the actual response. It will be more similar to the 
+    tuning performed in a) where we compare the estimated state to the actual state. Note
+    that by "ground truth", I do not mean the actual true state. For example you could tune
+    the KF for a radar or a camera, where GNSS-position of the ships are used as the ground 
+    truth. The GNSS has some variance itself, but will generally be accurate enough for us 
+    to use it as the "true" value
     """
 
 # %% Comments for task 5c)
@@ -355,5 +367,11 @@ if __name__ == '__main__':
     results. if it is from another population, the tuning will likely be way off. This is due to
     that the tuning of the EKF assumes the noise of the process and the measurements. By changing
     either the system or the measurments, the covariances will be different  
+
+    Even without tuning the system after the results in b), the predicted response follows the
+    curve relatively well, except right before the jump in measurements. We can clearly see that
+    the filter does not rely enough on the measurments (as indicated in b)). Thus it is a bit 
+    overfitted to the data in a), however that was expected. By relying more on the measurements,
+    the estimated states would be better
     """
 
