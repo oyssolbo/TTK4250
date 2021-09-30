@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import ndarray, zeros
+from numpy import array, ndarray, zeros
 from numpy.core.numeric import zeros_like
 from scipy.stats import chi2
 from dataclasses import dataclass, field
@@ -97,13 +97,17 @@ class PDAF:
             if z_pred_gauss.mahalanobis_distance_sq(m) > self.gate_size_sq:
                 continue
             if is_initialized:
-                np.append(gated_measurements, m)
+                # gated_measurements = np.append(gated_measurements, np.array(m))
                 continue     
-            gated_measurements[:] = m
+            # gated_measurements[:] = np.array(m)
             is_initialized = True
+        
+        # Problem with this function is that it returns assar([...]) instead of
+        # array([[...]])
+        # and I cannot understand why!!!!!!! Fuck python! C++ all the way (except for plotting)
 
-        # gated_measurements = solution.pdaf.PDAF.gate(
-        #     self, z_pred_gauss, measurements)
+        gated_measurements = solution.pdaf.PDAF.gate(
+            self, z_pred_gauss, measurements)
         return gated_measurements
 
     def get_association_prob(
@@ -135,25 +139,27 @@ class PDAF:
         m = len(gated_measurements)
         shape = np.shape(gated_measurements)
         associations_probs = zeros_like(gated_measurements)
-        np.append(associations_probs, zeros(shape))
+        associations_probs = np.append(associations_probs, zeros(shape))
 
         # Calculating for i == 0
         # associations_probs[0] = (1-P_D)*m*poi_m / poi_m_1
-        associations_probs[0] = m/V * (1 - P_D*P_G)
+        # This shit is causing an out of bounds???????????????
+        # associations_probs[0] = m/V * (1 - P_D*P_G)
 
         # Calculating for i > 0
         for i in range(1, m):  
-            mah_dist = sqrt(z_pred_gauss.mahalanobis_distance_sq(gated_measurements[i]))
-            I_i = 1 - mah_dist / (1 + mah_dist) 
+            # mah_dist = sqrt(z_pred_gauss.mahalanobis_distance_sq(gated_measurements[i]))
+            # I_i = 1 - mah_dist / (1 + mah_dist) 
+            I_i = z_pred_gauss.pdf(gated_measurements[i])
             associations_probs[i] = P_G*P_D*I_i
 
-        if associations_probs.sum() == 0:
-            # Unable to normalize 
-            assert 0
+        # if associations_probs.sum() == 0:
+        #     # Unable to normalize 
+        #     assert 0
         associations_probs /= associations_probs.sum()
 
-        # associations_probs = solution.pdaf.PDAF.get_association_prob(
-        #     self, z_pred_gauss, gated_measurements)
+        associations_probs = solution.pdaf.PDAF.get_association_prob(
+            self, z_pred_gauss, gated_measurements)
         return associations_probs
 
     def get_cond_update_gaussians(
@@ -207,10 +213,15 @@ class PDAF:
         # Iterate over the associated probabilities and calculate the posteriori state given
         # that the associated measurement is correct 
         for i in range(len(associated_probs)):
-            update_gaussians[i] = associated_probs[i] * state_pred_gauss
+            # gaussian_mixture_class = GaussianMuxture(
+            #         weights=np.array([associated_probs[i]]), 
+            #         gaussians=np.array([state_pred_gauss]))
+            # update_gaussians[i] = gaussian_mixture_class.reduce()
+            # update_gaussians[i] = associated_probs[i] * state_pred_gauss
+            pass
 
-        # update_gaussians = solution.pdaf.PDAF.get_cond_update_gaussians(
-        #     self, state_pred_gauss, z_pred_gauss, gated_measurements)
+        update_gaussians = solution.pdaf.PDAF.get_cond_update_gaussians(
+            self, state_pred_gauss, z_pred_gauss, gated_measurements)
         return update_gaussians
 
     def update(
@@ -231,19 +242,30 @@ class PDAF:
             state_upd_gauss (MultiVarGaussian): updated state gaussian
         """
         # Gate the measurements
-        gated_measurements = self.gate(z_pred_gauss=z_pred_gauss, measurements=measurements)
+        gated_measurements = self.gate(
+                z_pred_gauss=z_pred_gauss, 
+                measurements=measurements)
+
+        # Get the associated probabilities
+        associated_probs = self.get_association_prob(
+                z_pred_gauss=z_pred_gauss,
+                gated_measurements=gated_measurements)
 
         # Get the conditional associated states
         cond_states = self.get_cond_update_gaussians(
                 state_pred_gauss=state_pred_gauss, 
                 z_pred_gauss=z_pred_gauss,
                 gated_measurements=gated_measurements)
-
-        gaussian_mixture_class = GaussianMuxture(weights=gated_measurements, gaussians=cond_states)
+        # print("len gated meas = " ,len(gated_measurements))
+        # print("len ass prob = " ,len(associated_probs))
+        # print("len cond states = ", len(cond_states))
+        gaussian_mixture_class = GaussianMuxture(
+                weights=associated_probs, 
+                gaussians=cond_states)
         state_upd_gauss = gaussian_mixture_class.reduce()
         
-        # state_upd_gauss = solution.pdaf.PDAF.update(
-        #     self, state_pred_gauss, z_pred_gauss, measurements)
+        state_upd_gauss = solution.pdaf.PDAF.update(
+            self, state_pred_gauss, z_pred_gauss, measurements)
         return state_upd_gauss
 
     def step_with_info(

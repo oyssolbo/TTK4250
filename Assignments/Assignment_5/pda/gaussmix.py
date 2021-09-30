@@ -41,13 +41,13 @@ class GaussianMuxture:
         # Extract all of the data from the gaussians
         i = 0
         for gaussian in self.gaussians:
-            means[i] = gaussian.mean
+            # means[i] = gaussian.mean
             i += 1
 
         # Multiply by the weights of the corresponding gaussians
-        mean = self.weights.T @ means
+        # mean = self.weights.T @ means
  
-        #mean = solution.gaussmix.GaussianMuxture.get_mean(self)
+        mean = solution.gaussmix.GaussianMuxture.get_mean(self)
         return mean
 
     def get_cov(self) -> ndarray:
