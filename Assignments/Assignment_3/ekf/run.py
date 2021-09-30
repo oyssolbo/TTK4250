@@ -1,5 +1,6 @@
 # %% Imports
 from typing import Collection
+import scipy
 from scipy import stats
 from matplotlib import pyplot as plt
 import numpy as np
