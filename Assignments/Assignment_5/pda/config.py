@@ -4,18 +4,18 @@
 DEBUG = False and __debug__
 
 
-sigma_a = 26  # acceleration standard deviation
+sigma_a = 2.6  # acceleration standard deviation
 sigma_z = 3.1  # measurement standard deviation
 
 # Clutter density, (measurements per m^2, is this reasonable?)
-clutter_density = 1e-6
+clutter_density = 67.581
 
 # Detection probability, (how often cyan dot appear, is this reasonable?)
-detection_prob = 0.5
+detection_prob = 0.896
 
 # Gate percentile, (estimated percentage of correct measurements that will be
 # accepted by gate function)
-gate_percentile = 0.8
+gate_percentile = 0.5
 
 
 """
@@ -103,7 +103,7 @@ Attempt 1:
         3.1% below
         5.8% above
 
-Attempt 1:
+Attempt 2:
     Values: 
         sigma_a = 26
         sigma_z = 3.1
@@ -118,14 +118,119 @@ Attempt 1:
         allows the model/system to change much between
         measurmeents
     Result:
-        Can clearly see that the gate has been
-        increased
+        Compared to the results in the attempt number 1,
+        the gate looks to be back to its size in attempt 
+        number 0. 
 
-        91.9% within 95% confidence
-        3.1% below
-        5.8% above
+        About the NEES, we can see that most of the 
+        measurements are far above the desired region for 
+        the NEES. This means that the EKF has too low values
+        in the Q-matrix, such that it is overconfident in
+        its state estimates
 
+        1.9% within 95% confidence
+        0.2% below
+        97.9% above
 
+Attempt 3:
+    Values: 
+        sigma_a = 2.6
+        sigma_z = 3.1
+        clutter_density = 1e-2
+        detection_prob = 0.5
+        gate_percentile = 0.8
+    Reasoning:
+        Tries to increase the probability for clutter, to
+        see the results it have on the filter and the 
+        estimates. By increasing the clutter, we expect that
+        there will be more data sets inside of the gate, such
+        that the filter will assess more values for the next
+        estimate. Thus leaving the next estimate to be worse
+        than in earlier attempts (attempt 0)
+    Result:
+        CI had honestly excpected more clutter on the screen.
+        Trying to increase the clutter even further
+
+        21.6% within 95% confidence
+        0.3% below
+        78.1% above
+
+Attempt 4:
+    Values: 
+        sigma_a = 26
+        sigma_z = 3.1
+        clutter_density = 1e2
+        detection_prob = 0.5
+        gate_percentile = 0.8
+    Reasoning:
+        Stated above
+    Result:
+        Heh. Just now realizes that there is a playable
+        function. We could see that a clutter intensity of 
+        1e2, makes the target lose track after a few 
+        iterations
+
+        11.6% within 95% confidence
+        0% below
+        88.4% above
+
+# Trying to use the trajectory visualization from now on #
+
+Attempt 5:
+    Values: 
+        sigma_a = 2.6
+        sigma_z = 3.1
+        clutter_density = 1e-6
+        detection_prob = 0.5
+        gate_percentile = 0.8
+    Reasoning:
+        Redoing the earlier measurmenets
+    Result:
+        One can clearly see that the flter is overconfident.
+        It diverges at around 15 to 16 iterations, where the
+        filter goes on to its own thing. 
+
+        To reduce the probability of this to occur, a less
+        confident filter is required. That means to increase
+        the value for sigma_z more compared to the values for
+        sigma_a
+
+        5.8% within 95% confidence
+        0% below
+        94.2% above
+
+Attempt 6:
+    Values: 
+        sigma_a = 2.6
+        sigma_z = 5
+        clutter_density = 1e-6
+        detection_prob = 0.5
+        gate_percentile = 0.8
+    Reasoning:
+        Increasing the value for Q such that the system should 
+        become less confident, and trust the measurements more
+    Result:
+        Gotta love it when the system diverged even quicker.
+        Now it occured at iteration 8.... Just fml
+
+        i have been testing some values for the EKF off screen,
+        and I saw that I got fairly "good" results whn sigma_z
+        was increased to around 20 (rough testing), where it 
+        only started diverging at iteration number 136
+
+        The problem is that the NEES is not the best. Trying to
+        test different values to reduce NEES, eg increasing the 
+        value for sigma_z, gives a larger covariance-matrix. For 
+        the system to not diverge as quickly, a severe reduction in
+        the agte percentile was required (currently testing
+        sigma_z = 150 and gate_percentile = 0.01). But the 
+        estimate diverging relatively quickly. 
+        
+        Reducing the parameters for sigma_z down to 10, while
+        maintaining the gate_percentile at 0.01, gives a NEES
+        where over 95% is within the 95% certainty. Howver, the
+        number of gated measurements are so small, such that the
+        system quickly invalidates the real measurements 
 
 
 

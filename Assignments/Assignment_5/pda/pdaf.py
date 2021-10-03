@@ -90,24 +90,20 @@ class PDAF:
         Returns:
             gated_measurements (ndarray[:,2]): array of accepted measurements
         """
-        gated_measurements = np.full_like(measurements[0], fill_value=None)
+        gated_measurements = np.empty_like([measurements[0]])
         is_initialized = False
 
         for m in measurements:
             if z_pred_gauss.mahalanobis_distance_sq(m) > self.gate_size_sq:
                 continue
             if is_initialized:
-                # gated_measurements = np.append(gated_measurements, np.array(m))
+                gated_measurements = np.append(gated_measurements, np.array(m))
                 continue     
-            # gated_measurements[:] = np.array(m)
+            gated_measurements[:] = np.array(m)
             is_initialized = True
-        
-        # Problem with this function is that it returns assar([...]) instead of
-        # array([[...]])
-        # and I cannot understand why!!!!!!! Fuck python! C++ all the way (except for plotting)
 
-        gated_measurements = solution.pdaf.PDAF.gate(
-            self, z_pred_gauss, measurements)
+        # gated_measurements = solution.pdaf.PDAF.gate(
+        #     self, z_pred_gauss, measurements)
         return gated_measurements
 
     def get_association_prob(
@@ -133,33 +129,24 @@ class PDAF:
             associations_probs (ndarray[:]): the association probabilities
         """
         P_D = self.detection_prob
-        P_G = self.gate_percentile
         V = 1 / self.clutter_density   
 
         m = len(gated_measurements)
-        shape = np.shape(gated_measurements)
-        associations_probs = zeros_like(gated_measurements)
-        associations_probs = np.append(associations_probs, zeros(shape))
+        associations_probs = np.zeros((m,1))
+        associations_probs = np.append(associations_probs, np.zeros((1,1)))
 
         # Calculating for i == 0
-        # associations_probs[0] = (1-P_D)*m*poi_m / poi_m_1
-        # This shit is causing an out of bounds???????????????
-        # associations_probs[0] = m/V * (1 - P_D*P_G)
+        associations_probs[0] = m/V * (1 - P_D)
 
         # Calculating for i > 0
-        for i in range(1, m):  
-            # mah_dist = sqrt(z_pred_gauss.mahalanobis_distance_sq(gated_measurements[i]))
-            # I_i = 1 - mah_dist / (1 + mah_dist) 
+        for i in range(0, m):  
             I_i = z_pred_gauss.pdf(gated_measurements[i])
-            associations_probs[i] = P_G*P_D*I_i
+            associations_probs[i-1] = P_D*I_i
 
-        # if associations_probs.sum() == 0:
-        #     # Unable to normalize 
-        #     assert 0
         associations_probs /= associations_probs.sum()
 
-        associations_probs = solution.pdaf.PDAF.get_association_prob(
-            self, z_pred_gauss, gated_measurements)
+        # associations_probs = solution.pdaf.PDAF.get_association_prob(
+        #     self, z_pred_gauss, gated_measurements)
         return associations_probs
 
     def get_cond_update_gaussians(
@@ -186,23 +173,6 @@ class PDAF:
         Returns:
             Sequence[MultiVarGaussian]: The sequence of conditional updates
         """
-        # # Since the gated measurements have been truncated, this must also
-        # # be done to f_z to maintain scaling
-        # P_G = self.gate_percentile
-
-        # # Extract previous states
-        # state_pred_mean = state_pred_gauss.mean     # x_hat_k|k-1
-        # state_pred_cov = state_pred_gauss.cov       # P_k|k-1
-
-        # z_pred_mean = z_pred_gauss.mean / P_G       # z_hat_k|k-1 = Hx_hat_k|k-1
-        # z_pred_cov = z_pred_gauss.cov / (P_G**2)    # S_k = HP_k|k-1H^T + R
-
-        # H = z_pred_mean @ state_pred_mean.T
-
-        # # Calculate the kalman gain (assuming that the same one will be used for 
-        # # all measurements)
-        # W = state_pred_cov @ H.T @ np.linalg.inv(z_pred_cov)
-
         # Allocating memory
         n = len(gated_measurements)
         update_gaussians = np.arange(n+1, dtype=MultiVarGaussian)
@@ -213,12 +183,13 @@ class PDAF:
         # Iterate over the associated probabilities and calculate the posteriori state given
         # that the associated measurement is correct 
         for i in range(len(associated_probs)):
-            # gaussian_mixture_class = GaussianMuxture(
-            #         weights=np.array([associated_probs[i]]), 
-            #         gaussians=np.array([state_pred_gauss]))
-            # update_gaussians[i] = gaussian_mixture_class.reduce()
-            # update_gaussians[i] = associated_probs[i] * state_pred_gauss
-            pass
+            gaussian_mixture_class = GaussianMuxture(
+                    weights=np.array([associated_probs[i]]), 
+                    gaussians=np.array([state_pred_gauss]))
+            update_gaussians[i] = gaussian_mixture_class.reduce()
+
+        # Something is incorrect with this code, since it will not reduce properly
+        # for all 
 
         update_gaussians = solution.pdaf.PDAF.get_cond_update_gaussians(
             self, state_pred_gauss, z_pred_gauss, gated_measurements)
@@ -256,14 +227,15 @@ class PDAF:
                 state_pred_gauss=state_pred_gauss, 
                 z_pred_gauss=z_pred_gauss,
                 gated_measurements=gated_measurements)
-        # print("len gated meas = " ,len(gated_measurements))
-        # print("len ass prob = " ,len(associated_probs))
-        # print("len cond states = ", len(cond_states))
+
         gaussian_mixture_class = GaussianMuxture(
                 weights=associated_probs, 
                 gaussians=cond_states)
         state_upd_gauss = gaussian_mixture_class.reduce()
         
+        # state_upd_gauss is here just an array of float64
+        # and not a gaussian... Just fuck python! C++ all the way (except for plotting)
+
         state_upd_gauss = solution.pdaf.PDAF.update(
             self, state_pred_gauss, z_pred_gauss, measurements)
         return state_upd_gauss
