@@ -139,7 +139,7 @@ class PDAF:
         associations_probs[0] = m/V * (1 - P_D)
 
         # Calculating for i > 0
-        for i in range(0, m):  
+        for i in range(1, m):  
             I_i = z_pred_gauss.pdf(gated_measurements[i])
             associations_probs[i-1] = P_D*I_i
 
