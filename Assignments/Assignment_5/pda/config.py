@@ -5,7 +5,7 @@ DEBUG = False and __debug__
 
 
 sigma_a = 2.6  # acceleration standard deviation
-sigma_z = 3.1  # measurement standard deviation
+sigma_z = 5  # measurement standard deviation
 
 # Clutter density, (measurements per m^2, is this reasonable?)
 clutter_density = 67.581
@@ -232,6 +232,32 @@ Attempt 6:
         number of gated measurements are so small, such that the
         system quickly invalidates the real measurements 
 
+And there I lost all motivation....
+
+
+
+
+Note written couple of days later:
+
+I should have tuned this a lot better. The difficult thing is to get 
+the system to follow the correct state without diverging too 
+rapidly. My experimentation showed that the system would either accept
+too many measurements and therefore diverge, or that it would not value 
+the real system's measurements and thus diverge. I did experience that the
+algortihm was able to follow the track somewhat, however the filter became
+overconfident and started diverging at iteration 136. However, when running 
+the same value on my desktop (right when I am writing this shit), the system 
+diverged at iteration number 7 to 8. Idk why my laptop and desktop gave
+different results....
+
+
+I honestly started by trying to find the values that made the system stay 
+within a reasonable NEES, however that didn't quite work out.
+
+After that, I tried to just tune after analysing the track... It went as well
+as one could expect.  
+
+In other words, fuck my life!
 
 
 """
