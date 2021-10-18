@@ -56,7 +56,8 @@ class ESKF():
                       x_nom_prev: NominalState,
                       z_imu: ImuMeasurement,
                       ) -> CorrectedImuMeasurement:
-        """Correct IMU measurement so it gives a measurmenet of acceleration 
+        """
+        Correct IMU measurement so it gives a measurmenet of acceleration 
         and angular velocity in body.
 
         Hint: self.accm_correction and self.gyro_correction translates 
@@ -79,7 +80,8 @@ class ESKF():
                         x_nom_prev: NominalState,
                         z_corr: CorrectedImuMeasurement,
                         ) -> NominalState:
-        """Predict the nominal state, given a corrected IMU measurement
+        """
+        Predict the nominal state, given a corrected IMU measurement
 
         Hint: Discrete time prediction of equation (10.58)
         See the assignment description for more hints 
@@ -102,7 +104,8 @@ class ESKF():
                               x_nom_prev: NominalState,
                               z_corr: CorrectedImuMeasurement,
                               ) -> 'ndarray[15,15]':
-        """Get the transition matrix, A, in (10.68)
+        """
+        Get the transition matrix, A, in (10.68)
 
         Hint: The S matrices can be created using get_cross_matrix
 
@@ -124,7 +127,8 @@ class ESKF():
     def get_error_GQGT_continous(self,
                                  x_nom_prev: NominalState
                                  ) -> 'ndarray[15, 12]':
-        """The noise covariance matrix, GQGT, in (10.68)
+        """
+        The noise covariance matrix, GQGT, in (10.68)
 
         From (Theorem 3.2.2) we can see that (10.68) can be written as 
         d/dt x_err = A@x_err + G@n == A@x_err + m
@@ -146,7 +150,8 @@ class ESKF():
         return GQGT
 
     def get_van_loan_matrix(self, V: 'ndarray[30, 30]'):
-        """Use this funciton in get_discrete_error_diff to get the van loan 
+        """
+        Use this funciton in get_discrete_error_diff to get the van loan 
         matrix. See (4.63)
 
         All the tests are ran with do_approximations=False
@@ -169,7 +174,8 @@ class ESKF():
                                 z_corr: CorrectedImuMeasurement,
                                 ) -> Tuple['ndarray[15, 15]',
                                            'ndarray[15, 15]']:
-        """Get the discrete equivalents of A and GQGT in (4.63)
+        """
+        Get the discrete equivalents of A and GQGT in (4.63)
 
         Hint: you should use get_van_loan_matrix to get the van loan matrix
 
@@ -197,7 +203,8 @@ class ESKF():
                       x_err_prev_gauss: ErrorStateGauss,
                       z_corr: CorrectedImuMeasurement,
                       ) -> ErrorStateGauss:
-        """Predict the error state
+        """
+        Predict the error state
 
         Hint: This is doing a discrete step of (10.68) where x_err 
         is a multivariate gaussian.
@@ -222,7 +229,8 @@ class ESKF():
                          x_err_gauss: ErrorStateGauss,
                          z_imu: ImuMeasurement,
                          ) -> Tuple[NominalState, ErrorStateGauss]:
-        """Method called every time an IMU measurement is received
+        """
+        Method called every time an IMU measurement is received
 
         Args:
             x_nom_prev (NominalState): previous nominal state
@@ -241,7 +249,8 @@ class ESKF():
         return x_nom_pred, x_err_pred
 
     def get_gnss_measurment_jac(self, x_nom: NominalState) -> 'ndarray[3,15]':
-        """Get the measurement jacobian, H.
+        """
+        Get the measurement jacobian, H.
 
         Hint: the gnss antenna has a relative position to the center given by
         self.lever_arm. How will the gnss measurement change if the drone is 
@@ -257,7 +266,8 @@ class ESKF():
         return H
 
     def get_gnss_cov(self, z_gnss: GnssMeasurement) -> 'ndarray[3,3]':
-        """Use this function in predict_gnss_measurement to get R. 
+        """
+        Use this function in predict_gnss_measurement to get R. 
         Get gnss covariance estimate based on gnss estimated accuracy. 
 
         All the test data has self.use_gnss_accuracy=False, so this does not 
@@ -282,7 +292,8 @@ class ESKF():
                                  x_err: ErrorStateGauss,
                                  z_gnss: GnssMeasurement,
                                  ) -> MultiVarGaussStamped:
-        """Predict the gnss measurement
+        """
+        Predict the gnss measurement
 
         Hint: z_gnss is only used in get_gnss_cov and to get timestamp for 
         the predicted measurement
@@ -308,7 +319,8 @@ class ESKF():
                       z_gnss_pred_gauss: MultiVarGaussStamped,
                       z_gnss: GnssMeasurement
                       ) -> ErrorStateGauss:
-        """Update the error state from a gnss measurement
+        """
+        Update the error state from a gnss measurement
 
         Hint: see (10.75)
         Due to numerical error its recomended use the robust calculation of 
@@ -337,7 +349,8 @@ class ESKF():
                x_nom_prev: NominalState,
                x_err_upd: ErrorStateGauss
                ) -> Tuple[NominalState, ErrorStateGauss]:
-        """Perform the injection step
+        """
+        Perform the injection step
 
         Hint: see (10.85) and (10.72) on how to inject into nominal state.
         See (10.86) on how to find error state after injection
@@ -364,7 +377,8 @@ class ESKF():
                          ) -> Tuple[NominalState,
                                     ErrorStateGauss,
                                     MultiVarGaussStamped]:
-        """Method called every time an gnss measurement is received.
+        """
+        Method called every time an gnss measurement is received.
 
 
         Args:

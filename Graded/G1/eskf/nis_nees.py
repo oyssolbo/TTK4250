@@ -13,7 +13,8 @@ def get_NIS(z_gnss: GnssMeasurement,
             z_gnss_pred_gauss: MultiVarGaussStamped,
             marginal_idxs: Optional[Sequence[int]] = None
             ) -> float:
-    """Calculate NIS
+    """
+    Calculate NIS
 
     Args:
         z_gnss (GnssMeasurement): gnss measurement
@@ -34,7 +35,8 @@ def get_NIS(z_gnss: GnssMeasurement,
 def get_error(x_true: NominalState,
               x_nom: NominalState,
               ) -> 'ndarray[15]':
-    """Finds the error (difference) between True state and 
+    """
+    Finds the error (difference) between True state and 
     nominal state. See (Table 10.1).
 
 
@@ -52,7 +54,8 @@ def get_NEES(error: 'ndarray[15]',
              x_err: ErrorStateGauss,
              marginal_idxs: Optional[Sequence[int]] = None
              ) -> float:
-    """Calculate NEES
+    """
+    Calculate NEES
 
     Args:
         error (ndarray[15]): errors between x_true and x_nom (from get_error)
@@ -71,7 +74,9 @@ def get_NEES(error: 'ndarray[15]',
 
 
 def get_time_pairs(unique_data, data):
-    """match data from two different time series based on timestamps"""
+    """
+    Match data from two different time series based on timestamps
+    """
     gt_dict = dict(([x.ts, x] for x in unique_data))
     pairs = [(gt_dict[x.ts], x) for x in data if x.ts in gt_dict]
     times = [pair[0].ts for pair in pairs]

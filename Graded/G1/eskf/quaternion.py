@@ -1,7 +1,9 @@
 import numpy as np
+from math import atan2, asin
 from numpy import ndarray
 from dataclasses import dataclass
 from scipy.spatial.transform import Rotation
+from cross_matrix import get_cross_matrix
 
 from config import DEBUG
 
@@ -10,7 +12,8 @@ import solution
 
 @dataclass
 class RotationQuaterion:
-    """Class representing a rotation quaternion (norm = 1). Has some useful
+    """
+    Class representing a rotation quaternion (norm = 1). Has some useful
     methods for converting between rotation representations.
 
     Hint: You can implement all methods yourself, or use scipys Rotation class.
@@ -38,7 +41,8 @@ class RotationQuaterion:
             self.vec_part *= -1
 
     def multiply(self, other: 'RotationQuaterion') -> 'RotationQuaterion':
-        """Multiply two rotation quaternions
+        """
+        Multiply two rotation quaternions
         Hint: see (10.33)
 
         As __matmul__ is implemented for this class, you can use:
@@ -49,31 +53,33 @@ class RotationQuaterion:
         Returns:
             quaternion_product (RotationQuaternion): the product
         """
-
-        # TODO replace this with your own code
-        quaternion_product = solution.quaternion.RotationQuaterion.multiply(
-            self, other)
-
+        quaternion_product = RotationQuaterion(
+                self.real_part*other.real_part - self.vec_part@other.vec_part,
+                self.real_part*other.vec_part + other.real_part*self.vec_part + get_cross_matrix(self.vec_part)@other.vec_part)
+        
+        # quaternion_product = solution.quaternion.RotationQuaterion.multiply(
+        #     self, other)
         return quaternion_product
 
     def conjugate(self) -> 'RotationQuaterion':
-        """Get the conjugate of the RotationQuaternion"""
+        """
+        Get the conjugate of the RotationQuaternion
+        """
+        conj = RotationQuaterion(self.real_part, -1*self.vec_part)
 
-        # TODO replace this with your own code
-        conj = solution.quaternion.RotationQuaterion.conjugate(self)
-
+        #conj = solution.quaternion.RotationQuaterion.conjugate(self)
         return conj
 
     def as_rotmat(self) -> 'ndarray[3,3]':
-        """Get the rotation matrix representation of self
+        """
+        Get the rotation matrix representation of self
 
         Returns:
             R (ndarray[3,3]): rotation matrix
         """
-
-        # TODO replace this with your own code
-        R = solution.quaternion.RotationQuaterion.as_rotmat(self)
-
+        R = Rotation.from_quat(self._as_scipy_quat()).as_matrix()        
+        
+        # R = solution.quaternion.RotationQuaterion.as_rotmat(self)
         return R
 
     @property
@@ -81,32 +87,35 @@ class RotationQuaterion:
         return self.as_rotmat()
 
     def as_euler(self) -> 'ndarray[3]':
-        """Get the euler angle representation of self
+        """
+        Get the euler angle representation of self
 
         Returns:
             euler (ndarray[3]): extrinsic xyz euler angles (roll, pitch, yaw)
         """
-
-        # TODO replace this with your own code
-        euler = solution.quaternion.RotationQuaterion.as_euler(self)
-
+        euler = Rotation.from_quat(self._as_scipy_quat()).as_euler('zyx')
+        
+        # euler = solution.quaternion.RotationQuaterion.as_euler(self)
         return euler
 
     def as_avec(self) -> 'ndarray[3]':
-        """Get the angles vector representation of self
+        """
+        Get the angles vector representation of self
 
         Returns:
             euler (ndarray[3]): extrinsic xyz euler angles (roll, pitch, yaw)
         """
-
-        # TODO replace this with your own code
-        avec = solution.quaternion.RotationQuaterion.as_avec(self)
+        # No clue if I have understood this correctly
+        avec = Rotation.from_quat(self._as_scipy_quat()).as_rotvec()
+        
+        # avec = solution.quaternion.RotationQuaterion.as_avec(self)
 
         return avec
 
     @staticmethod
     def from_euler(euler: 'ndarray[3]') -> 'RotationQuaterion':
-        """Get a rotation quaternion from euler angles
+        """
+        Get a rotation quaternion from euler angles
         usage: rquat = RotationQuaterion.from_euler(euler)
 
         Args:
@@ -120,12 +129,16 @@ class RotationQuaterion:
         return rquat
 
     def _as_scipy_quat(self):
-        """If you're using scipys Rotation class, this can be handy"""
+        """
+        If you're using scipys Rotation class, this can be handy
+        """
         return np.append(self.vec_part, self.real_part)
 
     def __iter__(self):
         return iter([self.real_part, self.vec_part])
 
     def __matmul__(self, other) -> 'RotationQuaterion':
-        """Lets u use the @ operator, q1@q2 == q1.multiply(q2)"""
+        """
+        Lets u use the @ operator, q1@q2 == q1.multiply(q2)
+        """
         return self.multiply(other)
