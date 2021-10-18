@@ -106,6 +106,7 @@ class RotationQuaterion:
             euler (ndarray[3]): extrinsic xyz euler angles (roll, pitch, yaw)
         """
         # No clue if I have understood this correctly
+        # Look like the results are similar to the solution though
         avec = Rotation.from_quat(self._as_scipy_quat()).as_rotvec()
         
         # avec = solution.quaternion.RotationQuaterion.as_avec(self)
