@@ -12,7 +12,8 @@ from config import DEBUG
 
 @dataclass
 class NominalState:
-    """Class representing a nominal state. See (Table 10.1) in the book.
+    """
+    Class representing a nominal state. See (Table 10.1) in the book.
 
     Args:
         pos (ndarray[3]): position in NED
@@ -41,8 +42,10 @@ class NominalState:
 
 @dataclass
 class ErrorStateGauss(MultiVarGaussStamped):
-    """A multivariate gaussian representing the error state.
-    Has some properties to fetch out useful indexes"""
+    """
+    A multivariate gaussian representing the error state.
+    Has some properties to fetch out useful indexes
+    """
 
     def __post_init__(self):
         super().__post_init__()

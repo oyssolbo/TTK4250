@@ -4,6 +4,7 @@ import scipy
 from dataclasses import dataclass, field
 from typing import Tuple
 from functools import cache
+from math import cos, sin, isnan
 
 from datatypes.multivargaussian import MultiVarGaussStamped
 from datatypes.measurements import (ImuMeasurement,
@@ -40,7 +41,7 @@ class ESKF():
     use_gnss_accuracy: bool = False
 
     Q_err: 'ndarray[12,12]' = field(init=False, repr=False)
-    g: 'ndarray[3]' = np.array([0, 0, 9.82])
+    g: 'ndarray[3]' = np.array([0, 0, 9.81]) # Why 9.82?
 
     def __post_init__(self):
 
@@ -57,7 +58,7 @@ class ESKF():
                       z_imu: ImuMeasurement,
                       ) -> CorrectedImuMeasurement:
         """
-        Correct IMU measurement so it gives a measurmenet of acceleration 
+        Correct IMU measurement so it gives a measurment of acceleration 
         and angular velocity in body.
 
         Hint: self.accm_correction and self.gyro_correction translates 
@@ -70,10 +71,15 @@ class ESKF():
         Returns:
             CorrectedImuMeasurement: corrected IMU measurement
         """
+        lin_acc_m = z_imu.acc - x_nom_prev.accm_bias
+        ang_vel_m = z_imu.avel - x_nom_prev.gyro_bias
 
-        # TODO replace this with your own code
-        z_corr = solution.eskf.ESKF.correct_z_imu(self, x_nom_prev, z_imu)
+        # Rotate the raw measurements from m-frame to b-frame
+        lin_acc_b = self.accm_correction@lin_acc_m
+        ang_vel_b = self.gyro_correction@ang_vel_m
+        z_corr = CorrectedImuMeasurement(z_imu.ts, lin_acc_b, ang_vel_b)
 
+        # z_corr = solution.eskf.ESKF.correct_z_imu(self, x_nom_prev, z_imu)
         return z_corr
 
     def predict_nominal(self,
@@ -93,11 +99,44 @@ class ESKF():
         Returns:
             x_nom_pred (NominalState): predicted nominal state
         """
+        # Problem with time being set to None
+        if x_nom_prev.ts == None:
+            x_nom_prev.ts = 0
+        if z_corr.ts == None:
+            z_corr.ts = 0
 
-        # TODO replace this with your own code
-        x_nom_pred = solution.eskf.ESKF.predict_nominal(
-            self, x_nom_prev, z_corr)
+        # Problem with the rotation-matrix being initialized as nan
+        if(isnan(x_nom_prev.ori.real_part) or isnan(np.sum(x_nom_prev.ori.vec_part))):
+            x_nom_prev.ori = RotationQuaterion(1, np.array([0, 0, 0]))
 
+        ts = z_corr.ts - x_nom_prev.ts  
+        R_q = x_nom_prev.ori.R
+        
+        kappa = ts * z_corr.avel
+        # kappa = ts * (z_corr.avel - x_nom_prev.gyro_bias)
+        kappa_norm = np.linalg.norm(kappa)
+
+        # Differential equations
+        v_dot_pred = R_q @ z_corr.acc + self.g
+        # v_dot_pred = R_q @ (z_corr.acc - x_nom_prev.accm_bias) + self.g # Include bias or not? 
+        p_dot_pred = x_nom_prev.vel + 1/2*ts*v_dot_pred # Note that ts^1, since multiplying with ts later 
+        accm_bias_dot = -self.accm_bias_p * np.eye(3) @ x_nom_prev.accm_bias 
+        gyro_bias_dot = -self.gyro_bias_p * np.eye(3) @ x_nom_prev.gyro_bias
+
+        # Using euler integration
+        p_pred = x_nom_prev.pos + ts*p_dot_pred
+        v_pred = x_nom_prev.vel + ts*v_dot_pred
+        q_pred = x_nom_prev.ori @ RotationQuaterion(
+                cos(kappa_norm*ts/2), sin(kappa_norm*ts/2)*kappa.T/kappa_norm)
+        # accm_bias_pred = x_nom_prev.accm_bias + ts*accm_bias_dot
+        # gyro_bias_pred = x_nom_prev.gyro_bias + ts*gyro_bias_dot
+        accm_bias_pred = np.exp(-ts*self.accm_bias_p) * x_nom_prev.accm_bias
+        gyro_bias_pred = np.exp(-ts*self.gyro_bias_p) * x_nom_prev.gyro_bias
+
+        x_nom_pred = NominalState(p_pred, v_pred, q_pred, accm_bias_pred, gyro_bias_pred)
+
+        # x_nom_pred = solution.eskf.ESKF.predict_nominal(
+        #     self, x_nom_prev, z_corr)
         return x_nom_pred
 
     def get_error_A_continous(self,

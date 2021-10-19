@@ -110,7 +110,6 @@ class RotationQuaterion:
         avec = Rotation.from_quat(self._as_scipy_quat()).as_rotvec()
         
         # avec = solution.quaternion.RotationQuaterion.as_avec(self)
-
         return avec
 
     @staticmethod

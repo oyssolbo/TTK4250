@@ -5,7 +5,8 @@ from typing import Optional
 
 @dataclass
 class ImuMeasurement():
-    """Represents raw data received from the imu
+    """
+    Represents raw data received from the imu
 
     Args:
         ts (float): IMU measurement timestamp
@@ -23,12 +24,13 @@ class ImuMeasurement():
 
 @dataclass
 class CorrectedImuMeasurement(ImuMeasurement):
-    """Represents processed data from the IMU.
+    """
+    Represents processed data from the IMU.
     Corrected for axis alignmentand scale scale, and bias. 
 
     Not 'corrected' for gravity.
 
-    Implementation is exaclty the same as ImuMeasurement
+    Implementation is exactly the same as ImuMeasurement
 
     Args:
         ts (float): IMU measurement timestamp
@@ -39,7 +41,8 @@ class CorrectedImuMeasurement(ImuMeasurement):
 
 @ dataclass
 class GnssMeasurement():
-    """Represents data received from gnss
+    """
+    Represents data received from gnss
     Args:
         ts(ndarray[:]): IMU measurement timestamp
         position(ndarray[:, 3]): GPS position measurement
