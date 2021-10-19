@@ -3,8 +3,9 @@ from functools import cache
 
 @cache
 def block_3x3(i: int, j: int):
-    """used to generate 3x3 block slices
-    This can be usefull to fill out A and G in (10.68)
+    """
+    Used to generate 3x3 block slices
+    This can be useful to fill out A and G in (10.68)
 
     arr[block33(0,1)] == arr[0:3, 3:6]
     arr[block33(1,2)] == arr[3:6, 6:9]
