@@ -7,7 +7,8 @@ from config import DEBUG
 
 
 def isPSD(arr: np.ndarray) -> bool:
-    """if this fail you can try the more robust update step:
+    """
+    If this fail you can try the more robust update step:
     Before: 
         P_upd =(np.eye(*P.shape) - W @ H) @ P
     After:
@@ -20,7 +21,9 @@ def isPSD(arr: np.ndarray) -> bool:
 
 @dataclass
 class MultiVarGaussStamped:
-    """Multi variate gaussian with a timestamp"""
+    """
+    Multi variate gaussian with a timestamp
+    """
     mean: 'ndarray[:]'
     cov: 'ndarray[:,:]'
     ts: float
@@ -42,12 +45,13 @@ class MultiVarGaussStamped:
         return scaling
 
     def mahalanobis_distance_sq(self, x: np.ndarray) -> float:
-        """Calculate the mahalanobis distance between self and x.
+        """
+        Calculate the mahalanobis distance between self and x.
 
         This is also known as the quadratic form of the Gaussian.
         See (3.2) in the book.
         """
-        # this method could be vectorized for efficient calls
+        # This method could be vectorized for efficient calls
         error = x - self.mean
         mahalanobis_distance = error.T @ nla.solve(self.cov, error)
         return mahalanobis_distance
@@ -61,5 +65,5 @@ class MultiVarGaussStamped:
                                     self.cov[np.ix_(idxs, idxs)],
                                     self.ts)
 
-    def __iter__(self):  # in order to use tuple unpacking
+    def __iter__(self):  # In order to use tuple unpacking
         return iter((self.mean, self.cov))
