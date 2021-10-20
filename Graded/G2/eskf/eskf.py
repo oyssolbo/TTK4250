@@ -309,7 +309,7 @@ class ESKF():
             x_err_pred (ErrorStateGauss): predicted error state
         """
         # Correcting the measurement
-        z_corr = self.correct_z_imu(z_imu)
+        z_corr = self.correct_z_imu(x_nom_prev, z_imu)
 
         # Predict nominal state
         x_nom_pred = self.predict_nominal(x_nom_prev, z_corr)
@@ -353,7 +353,7 @@ class ESKF():
 
         H = np.zeros((3, 15))
         H[block_3x3(0,0)] = np.eye(3)
-        H[block_3x3(2, 0)] = H_CM
+        H[block_3x3(0, 2)] = H_CM
 
         # H = solution.eskf.ESKF.get_gnss_measurment_jac(self, x_nom)
         return H
@@ -454,7 +454,7 @@ class ESKF():
 
         delta_x_hat = W @ (z_gnss.pos - z_gnss_pred_gauss.mean)
         WH_gnss = W @ H_gnss
-        P = (np.eye(np.shape(WH_gnss)) - WH_gnss) @ P
+        P = (np.eye(np.shape(WH_gnss)[0]) - WH_gnss) @ P
         
         x_err_upd_gauss = ErrorStateGauss(delta_x_hat, P, z_gnss.ts)
 

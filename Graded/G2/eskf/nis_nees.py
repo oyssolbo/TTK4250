@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import ndarray
 from typing import Sequence, Optional
-from Graded.G2.eskf.quaternion import RotationQuaterion
+from quaternion import RotationQuaterion
 
 from datatypes.measurements import GnssMeasurement
 from datatypes.eskf_states import NominalState, ErrorStateGauss
@@ -39,7 +39,7 @@ def get_NIS(z_gnss: GnssMeasurement,
         z_gnss_pred_marg = z_gnss_pred_marg.marginalize(marginal_idxs)
         z_gnss_marg = z_gnss_marg[marginal_idxs]
     
-    mu = z_gnss_marg - z_gnss_pred_gauss.mean
+    mu = z_gnss_marg - z_gnss_pred_marg.mean
     S = z_gnss_pred_marg.cov
 
     # Calculating NIS
@@ -97,20 +97,24 @@ def get_NEES(error: 'ndarray[15]',
     # In other words, it is given as 
     # epsilon = (x_hat - x)^T P^-1 (x_hat - x)
 
-    # Initializing in case of marginalizing
-    x_err_hat = x_err
-    x_err = error
+    # Assuming that one should find the NEES given by the errors.
+    # This gives that
+    # epsilon = (e_hat - e_t)^T P^-1 (e_hat - e_t)
 
-    # Taking the marginalized indeces into account
+    # Initializing in case of marginalizing
+    e_hat = x_err
+    e_t = error
+
+    # Possibly marginalizing the indeces
     if marginal_idxs != None:
-        x_err_hat = x_err_hat.marginalize(marginal_idxs)
-        x_err = x_err[marginal_idxs]
+        e_hat = e_hat.marginalize(marginal_idxs)
+        e_t = e_t[marginal_idxs]
     
-    mu = x_err - x_err_hat.mean
-    S = x_err.cov
+    e_diff = e_hat.mean - e_t
+    P = e_hat.cov 
 
     # Calculating NEES
-    NEES = mu.T @ np.linalg.inv(S) @ mu
+    NEES = e_diff.T @ np.linalg.inv(P) @ e_diff
 
     # NEES = solution.nis_nees.get_NEES(error, x_err, marginal_idxs)
     return NEES
