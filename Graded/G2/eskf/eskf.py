@@ -480,11 +480,28 @@ class ESKF():
             x_nom_inj (NominalState): nominal state after injection
             x_err_inj (ErrorStateGauss): error state gaussian after injection
         """
+        # Using equation 10.72 to inject the nominal state
+        x_nom_inj = x_nom_prev
+        x_nom_inj.pos += x_err_upd.pos
+        x_nom_inj.vel += x_err_upd.vel
+        x_nom_inj.ori = x_nom_inj.ori.multiply(RotationQuaterion(1, 1/2*x_err_upd.avec))
+        x_nom_inj.accm_bias += x_err_upd.accm_bias
+        x_nom_inj.gyro_bias += x_err_upd.gyro_bias
 
-        # TODO replace this with your own code
-        x_nom_inj, x_err_inj = solution.eskf.ESKF.inject(
-            self, x_nom_prev, x_err_upd)
+        # Using equation 10.86 to reset the error state
+        I_S_delta_theta = np.eye(3) - get_cross_matrix(1/2*x_err_upd.avec)
+        G = np.eye(15)
+        G[6:9, 6:9] = I_S_delta_theta
 
+        P = x_err_upd.cov
+        x_error_inj_cov = G @ P @ G.T
+
+        x_error_inj_mean = np.zeros_like(x_err_upd.mean)
+
+        x_err_inj = ErrorStateGauss(x_error_inj_mean, x_error_inj_cov, x_err_upd.ts)
+
+        # x_nom_inj, x_err_inj = solution.eskf.ESKF.inject(
+        #     self, x_nom_prev, x_err_upd)
         return x_nom_inj, x_err_inj
 
     def update_from_gnss(self,
@@ -510,8 +527,8 @@ class ESKF():
                 measurement, used for NIS calculations.
         """
 
-        # TODO replace this with your own code
+    
         x_nom_inj, x_err_inj, z_gnss_pred_gauss = solution.eskf.ESKF.update_from_gnss(
             self, x_nom_prev, x_err_prev, z_gnss)
-
+            
         return x_nom_inj, x_err_inj, z_gnss_pred_gauss
