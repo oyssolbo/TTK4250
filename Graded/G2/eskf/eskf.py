@@ -41,7 +41,7 @@ class ESKF():
     use_gnss_accuracy: bool = False
 
     Q_err: 'ndarray[12,12]' = field(init=False, repr=False)
-    g: 'ndarray[3]' = np.array([0, 0, 9.81]) # Why 9.82?
+    g: 'ndarray[3]' = np.array([0, 0, 9.82]) 
 
     def __post_init__(self):
 
@@ -99,46 +99,37 @@ class ESKF():
         Returns:
             x_nom_pred (NominalState): predicted nominal state
         """
-        # Fuck this task and fuck python!!!!!! C++ is love and C++ is life!
+        # Trying to predict the nominal state using the kinematics shown in
+        # equation 10.58
 
-        # Problem with time being set to None
-        # if x_nom_prev.ts == None:
-        #     x_nom_prev.ts = 0
-        # if z_corr.ts == None:
-        #     z_corr.ts = 0
+        # Time difference
+        ts = z_corr.ts - x_nom_prev.ts
 
-        # # Problem with the rotation-matrix being initialized as nan
-        # if(isnan(x_nom_prev.ori.real_part) or isnan(np.sum(x_nom_prev.ori.vec_part))):
-        #     x_nom_prev.ori = RotationQuaterion(1, np.array([0, 0, 0]))
-
-        # ts = z_corr.ts - x_nom_prev.ts  
-        # R_q = x_nom_prev.ori.R
+        # Measurements
+        omega = z_corr.avel - x_nom_prev.gyro_bias
+        lin_acc = x_nom_prev.ori.R @ (z_corr.acc - x_nom_prev.accm_bias) + self.g
         
-        # kappa = ts * z_corr.avel
-        # # kappa = ts * (z_corr.avel - x_nom_prev.gyro_bias)
-        # kappa_norm = np.linalg.norm(kappa)
+        # Quaternion-dynamics
+        kappa = ts*omega
+        kappa_norm = np.linalg.norm(kappa)
 
-        # # Differential equations
-        # v_dot_pred = R_q @ z_corr.acc + self.g
-        # # v_dot_pred = R_q @ (z_corr.acc - x_nom_prev.accm_bias) + self.g # Include bias or not? 
-        # p_dot_pred = x_nom_prev.vel + 1/2*ts*v_dot_pred # Note that ts^1, since multiplying with ts later 
-        # # accm_bias_dot = -self.accm_bias_p * np.eye(3) @ x_nom_prev.accm_bias 
-        # # gyro_bias_dot = -self.gyro_bias_p * np.eye(3) @ x_nom_prev.gyro_bias
+        # Differential eqautions
+        pos_pred_dot = x_nom_prev.vel + 1/2*ts*lin_acc  # Beware ts^1
+        vel_pred_dot = lin_acc
+        quad_pred_dot = RotationQuaterion(cos(kappa_norm)/2, sin(kappa_norm)/2*kappa.T/kappa_norm)
+        accm_pred_dot = -self.accm_bias_p*x_nom_prev.accm_bias + np.random.normal(0, 2*self.accm_bias_p*self.accm_std**2)
+        gyro_pred_dot = -self.gyro_bias_p*x_nom_prev.gyro_bias + np.random.normal(0, 2*self.gyro_bias_p*self.gyro_std**2)
 
-        # # Using euler integration
-        # p_pred = x_nom_prev.pos + ts*p_dot_pred
-        # v_pred = x_nom_prev.vel + ts*v_dot_pred
-        # q_pred = x_nom_prev.ori @ RotationQuaterion(
-        #         cos(kappa_norm*ts/2), sin(kappa_norm*ts/2)*kappa.T/kappa_norm)
-        # # accm_bias_pred = x_nom_prev.accm_bias + ts*accm_bias_dot
-        # # gyro_bias_pred = x_nom_prev.gyro_bias + ts*gyro_bias_dot
-        # accm_bias_pred = np.exp(-ts*self.accm_bias_p) * x_nom_prev.accm_bias
-        # gyro_bias_pred = np.exp(-ts*self.gyro_bias_p) * x_nom_prev.gyro_bias
+        # Euler integration
+        pos_pred = x_nom_prev.pos + ts*pos_pred_dot
+        vel_pred = x_nom_prev.vel + ts*vel_pred_dot
+        quad_pred = x_nom_prev.ori @ quad_pred_dot
+        accm_pred = x_nom_prev.accm_bias + ts*accm_pred_dot
+        gyro_pred = x_nom_prev.gyro_bias + ts*gyro_pred_dot
 
-        # x_nom_pred = NominalState(p_pred, v_pred, q_pred, accm_bias_pred, gyro_bias_pred)
+        x_nom_pred = NominalState(pos_pred, vel_pred, quad_pred, accm_pred, gyro_pred)
 
-        x_nom_pred = solution.eskf.ESKF.predict_nominal(
-            self, x_nom_prev, z_corr)
+        x_nom_pred = solution.eskf.ESKF.predict_nominal(self, x_nom_prev, z_corr)
         return x_nom_pred
 
     def get_error_A_continous(self,
