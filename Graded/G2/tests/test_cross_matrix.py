@@ -20,7 +20,7 @@ code_folder = project_folder.joinpath(assignment_name)
 sys.path.insert(0, str(code_folder))
 
 import solution  # nopep8
-import cross_matrix  # nopep8
+import cross_matrix, eskf, nis_nees, quaternion  # nopep8
 
 
 @pytest.fixture
@@ -31,8 +31,8 @@ def test_data():
 
 
 def compare(a, b):
-    if type(a) == type(b):
-        return False,
+    if type(a).__name__ != type(b).__name__:
+        return False
 
     elif isinstance(a, np.ndarray) or np.isscalar(a):
         return np.allclose(a, b, atol=1e-6)
@@ -43,6 +43,9 @@ def compare(a, b):
 
     elif isinstance(a, Iterable):
         return all([compare(i, j) for i, j in zip(a, b)])
+
+    else:
+        return a == b
 
 
 class Test_get_cross_matrix:
@@ -63,9 +66,9 @@ class Test_get_cross_matrix:
             S_1 = cross_matrix.get_cross_matrix(vec_1,)
 
             S_2 = solution.cross_matrix.get_cross_matrix(vec_2,)
-
+            
             assert compare(S_1, S_2)
-
+            
             assert compare(vec_1, vec_2)
 
     def test_solution_usage(self, test_data):

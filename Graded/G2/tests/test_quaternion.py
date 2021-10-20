@@ -20,7 +20,7 @@ code_folder = project_folder.joinpath(assignment_name)
 sys.path.insert(0, str(code_folder))
 
 import solution  # nopep8
-import quaternion  # nopep8
+import cross_matrix, eskf, nis_nees, quaternion  # nopep8
 
 
 @pytest.fixture
@@ -31,8 +31,8 @@ def test_data():
 
 
 def compare(a, b):
-    if type(a) == type(b):
-        return False,
+    if type(a).__name__ != type(b).__name__:
+        return False
 
     elif isinstance(a, np.ndarray) or np.isscalar(a):
         return np.allclose(a, b, atol=1e-6)
@@ -43,6 +43,9 @@ def compare(a, b):
 
     elif isinstance(a, Iterable):
         return all([compare(i, j) for i, j in zip(a, b)])
+
+    else:
+        return a == b
 
 
 class Test_RotationQuaterion_multiply:
@@ -60,14 +63,12 @@ class Test_RotationQuaterion_multiply:
 
             self_2, other_2 = deepcopy(params)
 
-            quaternion_product_1 = quaternion.RotationQuaterion.multiply(
-                self_1, other_1)
+            quaternion_product_1 = quaternion.RotationQuaterion.multiply(self_1, other_1)
 
-            quaternion_product_2 = solution.quaternion.RotationQuaterion.multiply(
-                self_2, other_2)
-
+            quaternion_product_2 = solution.quaternion.RotationQuaterion.multiply(self_2, other_2)
+            
             assert compare(quaternion_product_1, quaternion_product_2)
-
+            
             assert compare(self_1, self_2)
             assert compare(other_1, other_2)
 
@@ -101,9 +102,9 @@ class Test_RotationQuaterion_conjugate:
             conj_1 = quaternion.RotationQuaterion.conjugate(self_1,)
 
             conj_2 = solution.quaternion.RotationQuaterion.conjugate(self_2,)
-
+            
             assert compare(conj_1, conj_2)
-
+            
             assert compare(self_1, self_2)
 
     def test_solution_usage(self, test_data):
@@ -136,9 +137,9 @@ class Test_RotationQuaterion_as_rotmat:
             R_1 = quaternion.RotationQuaterion.as_rotmat(self_1,)
 
             R_2 = solution.quaternion.RotationQuaterion.as_rotmat(self_2,)
-
+            
             assert compare(R_1, R_2)
-
+            
             assert compare(self_1, self_2)
 
     def test_solution_usage(self, test_data):
@@ -171,9 +172,9 @@ class Test_RotationQuaterion_as_euler:
             euler_1 = quaternion.RotationQuaterion.as_euler(self_1,)
 
             euler_2 = solution.quaternion.RotationQuaterion.as_euler(self_2,)
-
+            
             assert compare(euler_1, euler_2)
-
+            
             assert compare(self_1, self_2)
 
     def test_solution_usage(self, test_data):
@@ -206,9 +207,9 @@ class Test_RotationQuaterion_as_avec:
             avec_1 = quaternion.RotationQuaterion.as_avec(self_1,)
 
             avec_2 = solution.quaternion.RotationQuaterion.as_avec(self_2,)
-
+            
             assert compare(avec_1, avec_2)
-
+            
             assert compare(self_1, self_2)
 
     def test_solution_usage(self, test_data):
