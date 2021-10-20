@@ -372,11 +372,11 @@ class ESKF():
             gnss_cov (ndarray[3,3]): the estimated gnss covariance
         """
         if self.use_gnss_accuracy and z_gnss.accuracy is not None:
-            # play around with this part, the suggested way is not optimal
+            # Play around with this part, the suggested way is not optimal
             gnss_cov = (z_gnss.accuracy/3)**2 * self.gnss_cov
 
         else:
-            # dont change this part
+            # Don't change this part
             gnss_cov = self.gnss_cov
         return gnss_cov
 
@@ -399,11 +399,23 @@ class ESKF():
         Returns:
             z_gnss_pred_gauss (MultiVarGaussStamped): gnss prediction gaussian
         """
+        # For estimating the next measurement, it is required to estimate the
+        # expected value (position) and the covariance of the estimate 
+        H_gnss = self.get_gnss_measurment_jac(x_nom)
+        R = self.get_gnss_cov(z_gnss)
 
-        # TODO replace this with your own code
-        z_gnss_pred_gauss = solution.eskf.ESKF.predict_gnss_measurement(
-            self, x_nom, x_err, z_gnss)
+        # Using algorithm 1 on p. 56
+        # Expected value
+        z_hat = x_nom.pos + x_nom.ori.R @ self.lever_arm
+        
+        # Innovation covariance 
+        S = H_gnss @ x_err.cov @ H_gnss.T + R
 
+        # Probability distribution
+        z_gnss_pred_gauss = MultiVarGaussStamped(z_hat, S, z_gnss.ts)
+
+        # z_gnss_pred_gauss = solution.eskf.ESKF.predict_gnss_measurement(
+        #     self, x_nom, x_err, z_gnss)
         return z_gnss_pred_gauss
 
     def get_x_err_upd(self,
