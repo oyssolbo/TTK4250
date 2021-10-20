@@ -403,13 +403,14 @@ class ESKF():
         # expected value (position) and the covariance of the estimate 
         H_gnss = self.get_gnss_measurment_jac(x_nom)
         R = self.get_gnss_cov(z_gnss)
+        P = x_err.cov
 
         # Using algorithm 1 on p. 56
         # Expected value
         z_hat = x_nom.pos + x_nom.ori.R @ self.lever_arm
         
         # Innovation covariance 
-        S = H_gnss @ x_err.cov @ H_gnss.T + R
+        S = H_gnss @ P @ H_gnss.T + R
 
         # Probability distribution
         z_gnss_pred_gauss = MultiVarGaussStamped(z_hat, S, z_gnss.ts)
@@ -443,11 +444,22 @@ class ESKF():
         Returns:
             x_err_upd_gauss (ErrorStateGauss): updated error state gaussian
         """
+        # Using equation 10.75
+        H_gnss = self.get_gnss_measurment_jac(x_nom)
+        R = self.get_gnss_cov(z_gnss)
+        P = x_err.cov
+        S = z_gnss_pred_gauss.cov
 
-        # TODO replace this with your own code
-        x_err_upd_gauss = solution.eskf.ESKF.get_x_err_upd(
-            self, x_nom, x_err, z_gnss_pred_gauss, z_gnss)
+        W = P @ H_gnss.T @ np.linalg.inv(S) #H_gnss @ P @ H_gnss.T + R)
 
+        delta_x_hat = W @ (z_gnss.pos - z_gnss_pred_gauss.mean)
+        WH_gnss = W @ H_gnss
+        P = (np.eye(np.shape(WH_gnss)) - WH_gnss) @ P
+        
+        x_err_upd_gauss = ErrorStateGauss(delta_x_hat, P, z_gnss.ts)
+
+        # x_err_upd_gauss = solution.eskf.ESKF.get_x_err_upd(
+        #     self, x_nom, x_err, z_gnss_pred_gauss, z_gnss)
         return x_err_upd_gauss
 
     def inject(self,
