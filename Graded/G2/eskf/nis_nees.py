@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import ndarray
 from typing import Sequence, Optional
+from Graded.G2.eskf.quaternion import RotationQuaterion
 
 from datatypes.measurements import GnssMeasurement
 from datatypes.eskf_states import NominalState, ErrorStateGauss
@@ -25,10 +26,26 @@ def get_NIS(z_gnss: GnssMeasurement,
     Returns:
         NIS (float): NIS value
     """
+    # NIS according to p. 69 is the normalized innovations squared
+    # In other words, it is given as 
+    # epsilon = (mu)^T S^-1 (mu)
 
-    # TODO replace this with your own code
-    NIS = solution.nis_nees.get_NIS(z_gnss, z_gnss_pred_gauss, marginal_idxs)
+    # Initializing in case of marginalizing
+    z_gnss_pred_marg = z_gnss_pred_gauss
+    z_gnss_marg = z_gnss.pos
 
+    # Taking the marginalized indeces into account
+    if marginal_idxs != None:
+        z_gnss_pred_marg = z_gnss_pred_marg.marginalize(marginal_idxs)
+        z_gnss_marg = z_gnss_marg[marginal_idxs]
+    
+    mu = z_gnss_marg - z_gnss_pred_gauss.mean
+    S = z_gnss_pred_marg.cov
+
+    # Calculating NIS
+    NIS = mu.T @ np.linalg.inv(S) @ mu
+
+    # NIS = solution.nis_nees.get_NIS(z_gnss, z_gnss_pred_gauss, marginal_idxs)
     return NIS
 
 
@@ -43,10 +60,20 @@ def get_error(x_true: NominalState,
     Returns:
         error (ndarray[15]): difference between x_true and x_nom. 
     """
-
-    # TODO replace this with your own code
-    error = solution.nis_nees.get_error(x_true, x_nom)
-
+    # Error = True - Nomial
+    e_pos = x_true.pos - x_nom.pos
+    e_vel = x_true.vel - x_nom.vel
+    q_nom_inv = x_nom.ori.conjugate()
+    q_nom_inv_norm = RotationQuaterion(q_nom_inv.real_part, q_nom_inv.vec_part) # Guaranteeing that it is normalized
+    e_ori = q_nom_inv_norm @ x_true.ori
+    e_ori = e_ori.as_euler()                                                    # Converting to euler angles
+    e_accm_bias = x_true.accm_bias - x_nom.accm_bias
+    e_gyro_bias = x_true.gyro_bias - x_nom.gyro_bias
+    
+    # Creating error-array
+    error = np.concatenate([e_pos, e_vel, e_ori, e_accm_bias, e_gyro_bias])
+    
+    # error = solution.nis_nees.get_error(x_true, x_nom)
     return error
 
 
@@ -66,10 +93,26 @@ def get_NEES(error: 'ndarray[15]',
     Returns:
         NEES (float): NEES value
     """
+    # NEES according to p. 69 is the normalized estimation error squared
+    # In other words, it is given as 
+    # epsilon = (x_hat - x)^T P^-1 (x_hat - x)
 
-    # TODO replace this with your own code
-    NEES = solution.nis_nees.get_NEES(error, x_err, marginal_idxs)
+    # Initializing in case of marginalizing
+    x_err_hat = x_err
+    x_err = error
 
+    # Taking the marginalized indeces into account
+    if marginal_idxs != None:
+        x_err_hat = x_err_hat.marginalize(marginal_idxs)
+        x_err = x_err[marginal_idxs]
+    
+    mu = x_err - x_err_hat.mean
+    S = x_err.cov
+
+    # Calculating NEES
+    NEES = mu.T @ np.linalg.inv(S) @ mu
+
+    # NEES = solution.nis_nees.get_NEES(error, x_err, marginal_idxs)
     return NEES
 
 
