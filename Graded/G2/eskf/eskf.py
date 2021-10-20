@@ -526,9 +526,17 @@ class ESKF():
             z_gnss_pred_gauss (MultiVarGaussStamped): predicted gnss 
                 measurement, used for NIS calculations.
         """
+        # Updating the system whenever a new GNSS-measurement is received 
 
+        # Predict the GNSS-measurement
+        z_gnss_pred_gauss = self.predict_gnss_measurement(x_nom_prev, x_err_prev, z_gnss)
     
-        x_nom_inj, x_err_inj, z_gnss_pred_gauss = solution.eskf.ESKF.update_from_gnss(
-            self, x_nom_prev, x_err_prev, z_gnss)
-            
+        # Update the error
+        x_err_upd = self.get_x_err_upd(x_nom_prev, x_err_prev, z_gnss_pred_gauss, z_gnss)
+
+        # Calculate the injected states
+        x_nom_inj, x_err_inj = self.inject(x_nom_prev, x_err_upd)
+
+        # x_nom_inj, x_err_inj, z_gnss_pred_gauss = solution.eskf.ESKF.update_from_gnss(
+        #     self, x_nom_prev, x_err_prev, z_gnss)
         return x_nom_inj, x_err_inj, z_gnss_pred_gauss
