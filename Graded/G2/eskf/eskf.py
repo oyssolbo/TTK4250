@@ -308,11 +308,17 @@ class ESKF():
             x_nom_pred (NominalState): predicted nominal state
             x_err_pred (ErrorStateGauss): predicted error state
         """
+        # Correcting the measurement
+        z_corr = self.correct_z_imu(z_imu)
 
-        # TODO replace this with your own code
-        x_nom_pred, x_err_pred = solution.eskf.ESKF.predict_from_imu(
-            self, x_nom_prev, x_err_gauss, z_imu)
+        # Predict nominal state
+        x_nom_pred = self.predict_nominal(x_nom_prev, z_corr)
 
+        # Predict error state
+        x_err_pred = self.predict_x_err(x_nom_prev, x_err_gauss, z_corr)
+
+        # x_nom_pred, x_err_pred = solution.eskf.ESKF.predict_from_imu(
+        #     self, x_nom_prev, x_err_gauss, z_imu)
         return x_nom_pred, x_err_pred
 
     def get_gnss_measurment_jac(self, x_nom: NominalState) -> 'ndarray[3,15]':
