@@ -332,10 +332,30 @@ class ESKF():
         Returns:
             H (ndarray[3, 15]): [description]
         """
+        # Unsure if the jacobian should include the measurements optained from other
+        # sensors or just the GNSS-receiver
 
-        # TODO replace this with your own code
-        H = solution.eskf.ESKF.get_gnss_measurment_jac(self, x_nom)
+        # Assuming that the GNSS will only measure the position, and not
+        # SOG, COG, pseudoranges etc. 
+        # Also assuming that the measurement-model is fine with euler angles
 
+        # Here we have that the measurement-model will include 
+        # z = h(xt) + w
+        # where the linearized version gives that
+        # z = H xt + w
+
+        # We assume that only a GNSS-receiver is used. This will give three 
+        # measurements that are dependent on the position and orientation of
+        # the UAV. Thus, we get that H = [eye(3) zeros(3) H_CM(3) zeros(3) zeros(3)]
+        # where H_CM(3) gives the change in coordinates from the arm between CO
+        # and CM 
+        H_CM = x_nom.ori.R @ (-get_cross_matrix(self.lever_arm))
+
+        H = np.zeros((3, 15))
+        H[block_3x3(0,0)] = np.eye(3)
+        H[block_3x3(2, 0)] = H_CM
+
+        # H = solution.eskf.ESKF.get_gnss_measurment_jac(self, x_nom)
         return H
 
     def get_gnss_cov(self, z_gnss: GnssMeasurement) -> 'ndarray[3,3]':
