@@ -1,8 +1,14 @@
+import os
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+# from G2.tests.test_eskf import test_data
+
 from typing import List, Tuple
 import numpy as np
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from dataclasses import asdict
+from tests.test_eskf import Test_ESKF_predict_nominal, test_data
 
 from utils.dataloader import load_sim_data, load_real_data
 from datatypes.eskf_params import ESKFTuningParams, ESKFStaticParams
@@ -128,4 +134,7 @@ def main():
 
 
 if __name__ == '__main__':
+    # test_eskf_predict_nominal = Test_ESKF_predict_nominal()
+    # data = test_data()
+    # test_eskf_predict_nominal.test_output(test_data)
     main()

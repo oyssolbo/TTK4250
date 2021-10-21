@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
 import numpy as np
 from numpy import ndarray
 import scipy
@@ -5,6 +9,7 @@ from dataclasses import dataclass, field
 from typing import Tuple
 from functools import cache
 from math import cos, sin, isnan
+# from tests.test_eskf import Test_ESKF_predict_nominal
 
 from datatypes.multivargaussian import MultiVarGaussStamped
 from datatypes.measurements import (ImuMeasurement,
@@ -99,37 +104,48 @@ class ESKF():
         Returns:
             x_nom_pred (NominalState): predicted nominal state
         """
+        # Should only be required to check x_nom_prev, as z_corr should always
+        # have a timestamp
+        if x_nom_prev.ts == None:
+            x_nom_prev.ts = 0
+        
+        # Preventing errors from a noninitialized 
+        if isnan(x_nom_prev.ori.real_part) or isnan(np.sum(x_nom_prev.ori.vec_part)):
+            x_nom_prev.ori = RotationQuaterion(1, np.array([0, 0, 0]))
+
         # Trying to predict the nominal state using the kinematics shown in
         # equation 10.58
 
         # Time difference
-        ts = z_corr.ts - x_nom_prev.ts
+        dt = z_corr.ts - x_nom_prev.ts 
+        if dt == 0:
+            return x_nom_prev
 
         # Measurements
-        omega = z_corr.avel - x_nom_prev.gyro_bias
-        lin_acc = x_nom_prev.ori.R @ (z_corr.acc - x_nom_prev.accm_bias) + self.g
+        omega = z_corr.avel
+        lin_acc = x_nom_prev.ori.R @ z_corr.acc + self.g    # Remember that it is the corrected IMU measurements!
         
         # Quaternion-dynamics
-        kappa = ts*omega
+        kappa = dt*omega
         kappa_norm = np.linalg.norm(kappa)
 
-        # Differential eqautions
-        pos_pred_dot = x_nom_prev.vel + 1/2*ts*lin_acc  # Beware ts^1
+        # Differential equations
+        pos_pred_dot = x_nom_prev.vel + 1/2.0*dt*lin_acc  # Beware ts^1
         vel_pred_dot = lin_acc
-        quad_pred_dot = RotationQuaterion(cos(kappa_norm)/2, sin(kappa_norm)/2*kappa.T/kappa_norm)
-        accm_pred_dot = -self.accm_bias_p*x_nom_prev.accm_bias + np.random.normal(0, 2*self.accm_bias_p*self.accm_std**2)
-        gyro_pred_dot = -self.gyro_bias_p*x_nom_prev.gyro_bias + np.random.normal(0, 2*self.gyro_bias_p*self.gyro_std**2)
+        quad_pred_dot = RotationQuaterion(cos(kappa_norm)/2.0, sin(kappa_norm)/2.0 * kappa.T/kappa_norm)
 
         # Euler integration
-        pos_pred = x_nom_prev.pos + ts*pos_pred_dot
-        vel_pred = x_nom_prev.vel + ts*vel_pred_dot
+        pos_pred = x_nom_prev.pos + dt*pos_pred_dot
+        vel_pred = x_nom_prev.vel + dt*vel_pred_dot
         quad_pred = x_nom_prev.ori @ quad_pred_dot
-        accm_pred = x_nom_prev.accm_bias + ts*accm_pred_dot
-        gyro_pred = x_nom_prev.gyro_bias + ts*gyro_pred_dot
 
-        x_nom_pred = NominalState(pos_pred, vel_pred, quad_pred, accm_pred, gyro_pred)
+        # Predicted bias in accm and gyro must use discrete integration
+        accm_pred = x_nom_prev.accm_bias*np.exp(-self.accm_bias_p*dt)
+        gyro_pred = x_nom_prev.gyro_bias*np.exp(-self.gyro_bias_p*dt)
 
-        x_nom_pred = solution.eskf.ESKF.predict_nominal(self, x_nom_prev, z_corr)
+        x_nom_pred = NominalState(pos_pred, vel_pred, quad_pred, accm_pred, gyro_pred, z_corr.ts)
+
+        # x_nom_pred = solution.eskf.ESKF.predict_nominal(self, x_nom_prev, z_corr)
         return x_nom_pred
 
     def get_error_A_continous(self,
@@ -276,7 +292,7 @@ class ESKF():
         Ad, GQGd = self.get_discrete_error_diff(x_nom_prev, z_corr)
 
         P = Ad @ x_err_prev_gauss.cov @ Ad.T + GQGd 
-        x_err_pred = ErrorStateGauss(x_err_prev_gauss.mean, P, z_corr.ts)
+        x_err_pred = ErrorStateGauss(x_err_prev_gauss.mean, P, z_corr.ts) # This fails due to isPSD()
 
         # x_err_pred = solution.eskf.ESKF.predict_x_err(
         #     self, x_nom_prev, x_err_prev_gauss, z_corr)
@@ -445,9 +461,11 @@ class ESKF():
 
         delta_x_hat = W @ (z_gnss.pos - z_gnss_pred_gauss.mean)
         WH_gnss = W @ H_gnss
-        P = (np.eye(np.shape(WH_gnss)[0]) - WH_gnss) @ P
+        # P = (np.eye(np.shape(WH_gnss)[0]) - WH_gnss) @ P  # Failed to to isPSD()
+        I_WH = np.eye(*P.shape) - WH_gnss
+        P_upd = (I_WH @ P @ I_WH.T+ W @ R @ W.T)
         
-        x_err_upd_gauss = ErrorStateGauss(delta_x_hat, P, z_gnss.ts)
+        x_err_upd_gauss = ErrorStateGauss(delta_x_hat, P_upd, z_gnss.ts)
 
         # x_err_upd_gauss = solution.eskf.ESKF.get_x_err_upd(
         #     self, x_nom, x_err, z_gnss_pred_gauss, z_gnss)
@@ -475,12 +493,12 @@ class ESKF():
         x_nom_inj = x_nom_prev
         x_nom_inj.pos += x_err_upd.pos
         x_nom_inj.vel += x_err_upd.vel
-        x_nom_inj.ori = x_nom_inj.ori.multiply(RotationQuaterion(1, 1/2*x_err_upd.avec))
+        x_nom_inj.ori = x_nom_inj.ori.multiply(RotationQuaterion(1, 1/2.0*x_err_upd.avec))
         x_nom_inj.accm_bias += x_err_upd.accm_bias
         x_nom_inj.gyro_bias += x_err_upd.gyro_bias
 
         # Using equation 10.86 to reset the error state
-        I_S_delta_theta = np.eye(3) - get_cross_matrix(1/2*x_err_upd.avec)
+        I_S_delta_theta = np.eye(3) - get_cross_matrix(1/2.0*x_err_upd.avec)
         G = np.eye(15)
         G[6:9, 6:9] = I_S_delta_theta
 
