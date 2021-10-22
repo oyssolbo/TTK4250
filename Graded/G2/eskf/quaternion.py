@@ -31,7 +31,7 @@ class RotationQuaterion:
         if DEBUG:
             assert len(self.vec_part) == 3
 
-        norm = self.real_part**2 + sum(self.vec_part**2)
+        norm = np.sqrt(self.real_part**2 + sum(self.vec_part**2))
         if not np.allclose(norm, 1):
             self.real_part /= norm
             self.vec_part /= norm
