@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Tuple
 from functools import cache
 from math import cos, sin, isnan
-from tests.test_eskf import Test_ESKF_predict_nominal
+# from tests.test_eskf import Test_ESKF_predict_nominal
 
 from datatypes.multivargaussian import MultiVarGaussStamped
 from datatypes.measurements import (ImuMeasurement,

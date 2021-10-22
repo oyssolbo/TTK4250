@@ -1,0 +1,381 @@
+The best part of kyb is definetly tuning
+
+Running the simulator for extracting values 
+
+The first run was a bit noisy to say the least. 
+
+From page 69, we know that too large values in Q will push the 
+ANEES below lower, while too smal values in Q will push the 
+ANEES above upper. 
+
+Having ANEES above upper is the most critical, as the EKF will
+become overconfident and distrust the measurements. This will 
+cause the EKF to diverge 
+
+It is assumed that the covariance-matrix is diagonal, such that
+there is no covariance between the measurement-units
+
+Initial values
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=1,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=1,
+
+    gnss_std_ne=1,
+    gnss_std_d=1
+
+    When tuning the position, it is - as expected - observed that the 
+    standard deviation in ne-plane is better than the positional estimate
+    in z-plane
+
+Tuning 0:
+    The background for choosing these values:
+        We know that the GNSS will have measurement-errors up to 5 m in 
+        the ne-plane, and it could be up to 15 m in the d-plane. This gives
+        that 
+
+        It is also expected that the bias of the IMU will drift quite slowly. 
+        Since the EKF will use the reciprocal, the values will be quite small.
+        It is known that an angular rate sensor will drift quicker than an 
+        accelerometer. This gives that the accelerometer will have a lower 
+        value than the angular rate sensor (gyro) since it will drift slower
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.01,
+
+    gnss_std_ne=2.24,   # sqrt(5)
+    gnss_std_d=3.87     # sqrt(15)
+
+    Results: 
+        NEES:
+            pos: 1.5 inside, 98.3 below, 0.2 above
+            a_b: 33.2 inside, 66.8 below, 0 above
+            w_b: 84.5 inside, 15.5 below, 0 above
+        NIS:
+            xyz: 5.2 inside, 94.7 below, 0.2 above
+            xy: 10.8 inside, 89 below, 0.2 above
+            z: 68.3 inside, 31.7 below, 0 above
+
+        One could argue that the values for the drift could be reduced further.
+        The drift in gyro is almost perfect, but it could be reduced even further.
+
+        The drift in accelerometer could also be reduced much further 
+
+        For the positional estimate, one could argue that increasing the gnss_std_d
+        slightly, such that the NIS gets further measurements inside.
+
+        One can also see that the estimated deviation in xy is too small. One should
+        increase the values corresponding to these states
+
+
+Tuning 1:
+    The background for choosing these values:
+        Read the results above
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.0001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.001,
+
+    gnss_std_ne=3.16,   # sqrt(10)
+    gnss_std_d=4.47     # sqrt(20)
+
+    Results: 
+        NEES:
+            pos: 0.5 inside, 99.2 below, 0.3 above
+            a_b: 24.1 inside, 75.9 below, 0 above
+            w_b: 99.8 inside, 0.2 below, 0 above
+        NIS:
+            xyz: 1.5 inside, 98.3 below, 0.2 above
+            xy: 4.2 inside, 95.7 below, 0.2 above
+            z: 61.2 inside, 38.8 below, 0 above
+        
+        I just realized that I tuned the GNSS-std the incorrect way. (Stupid me) I increased
+        where I should have decreased...
+
+        One can see that the bias in gyro is spot on.
+
+        The bias in accelerometer must be reduced some further
+
+
+Tuning 2:
+    The background for choosing these values:
+        Read the results above.
+
+        Reducing the bias in accm, and reducing the values for GNSS
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.001,
+
+    gnss_std_ne=1.5,
+    gnss_std_d=2.5 
+
+    Results: 
+        NEES:
+            pos: 0.6 inside, 99.2 below, 0.2 above
+            a_b: 17.1 inside, 82.7 below, 0 above
+            w_b: 99.8 inside, 0.2 below, 0 above
+        NIS:
+            xyz: 3.2 inside, 96.7 below, 0.2 above
+            xy: 14.3 inside, 85.5 below, 0.2 above
+            z: 73.3 inside, 26.5 below, 0.2 above
+
+        When studying the initial response, it is clear that the initial values for the 
+        GNSS was better than I had anticipated. Thus, reducing the GNSS-measurements to
+        around the initial values 
+
+        For the drift in the accm, it is clear that the value must be further decreased
+        
+Tuning 3:
+    The background for choosing these values:
+        Read the results above.
+
+        Reducing the bias in accm, and reducing the values for GNSS
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.000000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.001,
+
+    gnss_std_ne=1,
+    gnss_std_d=1 
+
+    Results: 
+        NEES:
+            pos: 8.3 inside, 91.4 below, 0.3 above
+            a_b: 93.3 inside, 6.7 below, 0 above
+            w_b: 92.6 inside, 0.2 below, 7.2 above
+        NIS:
+            xyz: 17.8 inside, 81.8 below, 0.3 above
+            xy: 22.5 inside, 77.3 below, 0.2 above
+            z: 84 inside, 15.8 below, 0.2 above
+
+        Interesting to see that the w_b actually started having values above
+
+        One can also see from the NEES that the drift is starting to diverge, as it looks
+        like they are continously around the upper limit. Will therefore increase both of
+        the values slightly
+
+        When studying the NIS, it is clear that the initial response is what causes the 
+        response to be above the upper. This means that the values corresponding to the
+        GNSS_std could be lowered. Here it is important to take into account that the 
+        value in z cannot be lowered that much, compared to the value in xy, since the
+        xy-measurements have a lower variance compared to the measurements in z
+
+Tuning 4:
+    The background for choosing these values:
+        Read the results above.
+
+        Reducing the bias in accm, and reducing the values for GNSS
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.00000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.0015,
+
+    gnss_std_ne=0.1,
+    gnss_std_d=0.5 
+
+    Results: 
+        NEES:
+            pos: 49.5 inside, 45.5 below, 5 above
+            a_b: 93.3 inside, 6.7 below, 0 above
+            w_b: 92.6 inside, 0.2 below, 7.2 above
+        NIS:
+            xyz: 54 inside, 43.8 below, 2.2 above
+            xy: 29.8 inside, 69.3 below, 0.8 above
+            z: 87.2 inside, 12.2 below, 0.7 above
+
+        Here one can start seeing the joy of tuning an EKF. The states are interconnected.
+        When changing the variable for GNSS, it affects the drift for the accelerometer and
+        the gyro...
+
+        One can see that based on the NIS, the values in xy and z could be reduced. 
+        However, since it is better to have som estimates where the filter gives some values
+        below, instead of having values that are above the threshold.
+
+        Thus, slightly decrease the z-value
+        Decrease the xy-value 10 times 
+
+        I will leave the drift in accm and gyro for later
+
+Tuning 5:
+    The background for choosing these values:
+        Read the results above.
+
+        Reducing the values for GNSS, but not focusing on the drift in the bias for now
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.00000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.0015,
+
+    gnss_std_ne=0.01,
+    gnss_std_d=0.25 
+
+    Results: 
+        NEES:
+            pos: 55.2 inside, 31.6 below, 13.2 above
+            a_b: 26.4 inside, 0.8 below, 72.7 above
+            w_b: 1.1 inside, 0.2 below, 98.7 above
+        NIS:
+            xyz: 61.8 inside, 34.7 below, 3.5 above
+            xy: 28.3 inside, 70 below, 1.7 above
+            z: 87.2 inside, 11.8 below, 1 above
+
+        I think that the GNSS-z is alright. Pherhaps some of my collegaes would disagree.
+
+        However, the value in xy is not good enough. Decreasing this 
+
+        To counteract the overconfidence in the drift a_b and w_b, the values for accm_bias_p and 
+        gyro_bias_p will be increased
+
+Tuning 6:
+    The background for choosing these values:
+        Read the results above.
+
+        Reducing the value for xy GNSS, while increasing values for bias 
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.015,
+
+    gnss_std_ne=0.001,
+    gnss_std_d=0.25 
+
+    Results: 
+        NEES:
+            pos: 28.8 inside, 60.5 below, 10.7 above
+            a_b: 0.6 inside, 0.7 below, 98.7 above
+            w_b: 70.4 inside, 0.2 below, 29.4 above
+        NIS:
+            xyz: 20.3 inside, 77 below, 2.7 above
+            xy: 48.5 inside, 50.5 below, 1 above
+            z: 74 inside, 25 below, 1 above
+
+        A new day with KF, where the states are affecting each other...
+
+        However one could argue how important it is whether the filter is overconfident or 
+        not regarding the bias. It is better that it relies accuratelly on the GNSS-measurements,
+        since the UAV has little battery-power, such that the bias should not be too catastrophic
+
+        Therefore, I will continoue to change the values (not all will be recorded, nor will all be 
+        commented on (I will save the values that are tried however + the plots)) until I am satisfied
+        with the GNSS-response
+
+Tuning 7:
+    The background for choosing these values:
+        Read the results above.
+
+        Reducing the value for all measurements in the GNSS 
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.0000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.015,
+
+    gnss_std_ne=0.001,
+    gnss_std_d=0.25
+
+Tuning 8:
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.00000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.0015,
+
+    gnss_std_ne=0.001,
+    gnss_std_d=0.5 
+
+Tuning 9:
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.00000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.0015,
+
+    gnss_std_ne=0.0001,
+    gnss_std_d=0.35 
+
+Tuning 10:
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.00000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.0015,
+
+    gnss_std_ne=0.0000001,
+    gnss_std_d=0.4 
+
+Tuning 11:
+    Throws error at is_PSD if gnss_std_ne > accm_bias_p (?)
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.0000001,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=0.0015,
+
+    gnss_std_ne=0.0000001,
+    gnss_std_d=0.4 
+
+    Also a slight comment of what is the physical meaning of having such small numbers 
+    for the variance of the GNSS. When tuning after the NIS and NEES, it suggests that 
+    there is little change in the position of the UAV. However, one should expect that 
+    the UAV will have really large values, because it could move quite a lot between the
+    samples
+
+Tuning 12:
+    Throws error at is_PSD if gnss_std_ne > accm_bias_p (?)
+    Throws error 
+
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=1,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=1.5,
+
+    gnss_std_ne=100,
+    gnss_std_d=500 
