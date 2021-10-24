@@ -134,7 +134,4 @@ def main():
 
 
 if __name__ == '__main__':
-    # test_eskf_predict_nominal = Test_ESKF_predict_nominal()
-    # data = test_data()
-    # test_eskf_predict_nominal.test_output(test_data)
     main()

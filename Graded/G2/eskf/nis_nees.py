@@ -66,7 +66,7 @@ def get_error(x_true: NominalState,
     q_nom_inv = x_nom.ori.conjugate()
     q_nom_inv_norm = RotationQuaterion(q_nom_inv.real_part, q_nom_inv.vec_part) # Guaranteeing that it is normalized
     e_ori = q_nom_inv_norm @ x_true.ori
-    e_ori = e_ori.as_euler()                                                    # Converting to euler angles
+    e_ori = e_ori.as_avec()                                                     # Converting to euler angles
     e_accm_bias = x_true.accm_bias - x_nom.accm_bias
     e_gyro_bias = x_true.gyro_bias - x_nom.gyro_bias
     

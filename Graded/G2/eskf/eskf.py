@@ -104,47 +104,47 @@ class ESKF():
         Returns:
             x_nom_pred (NominalState): predicted nominal state
         """
-        # Should only be required to check x_nom_prev, as z_corr should always
-        # have a timestamp
-        if x_nom_prev.ts == None:
-            x_nom_prev.ts = 0
+        # # Should only be required to check x_nom_prev, as z_corr should always
+        # # have a timestamp
+        # if x_nom_prev.ts == None:
+        #     x_nom_prev.ts = 0
         
-        # Preventing errors from a noninitialized 
-        if isnan(x_nom_prev.ori.real_part) or isnan(np.sum(x_nom_prev.ori.vec_part)):
-            x_nom_prev.ori = RotationQuaterion(1, np.array([0, 0, 0]))
+        # # Preventing errors from a noninitialized 
+        # if isnan(x_nom_prev.ori.real_part) or isnan(np.sum(x_nom_prev.ori.vec_part)):
+        #     x_nom_prev.ori = RotationQuaterion(1, np.array([0, 0, 0]))
 
-        # Using equation 10.58 to predict the nominal state
+        # # Using equation 10.58 to predict the nominal state
 
-        # Time difference
-        dt = z_corr.ts - x_nom_prev.ts 
-        if dt == 0:
-            return x_nom_prev
+        # # Time difference
+        # dt = z_corr.ts - x_nom_prev.ts 
+        # if dt == 0:
+        #     return x_nom_prev
 
-        # Measurements
-        omega = z_corr.avel
-        lin_acc = x_nom_prev.ori.R @ z_corr.acc + self.g    # Remember that it is the corrected IMU measurements!
+        # # Measurements
+        # omega = z_corr.avel
+        # lin_acc = x_nom_prev.ori.R @ z_corr.acc + self.g    # Remember that it is the corrected IMU measurements!
         
-        # Quaternion-dynamics
-        kappa = dt*omega
-        kappa_norm = np.linalg.norm(kappa)
+        # # Quaternion-dynamics
+        # kappa = dt*omega
+        # kappa_norm = np.linalg.norm(kappa)
 
-        # Differential equations
-        pos_pred_dot = x_nom_prev.vel + 1/2.0*dt*lin_acc  # Beware dt^1
-        vel_pred_dot = lin_acc
-        quad_pred_dot = RotationQuaterion(cos(kappa_norm)/2.0, sin(kappa_norm)/2.0 * kappa.T/kappa_norm)
+        # # Differential equations
+        # pos_pred_dot = x_nom_prev.vel + 1/2.0*dt*lin_acc  # Beware dt^1
+        # vel_pred_dot = lin_acc
+        # quad_pred_dot = RotationQuaterion(cos(kappa_norm)/2.0, sin(kappa_norm)/2.0 * kappa.T/kappa_norm)
 
-        # Euler integration
-        pos_pred = x_nom_prev.pos + dt*pos_pred_dot
-        vel_pred = x_nom_prev.vel + dt*vel_pred_dot
-        quad_pred = x_nom_prev.ori @ quad_pred_dot
+        # # Euler integration
+        # pos_pred = x_nom_prev.pos + dt*pos_pred_dot
+        # vel_pred = x_nom_prev.vel + dt*vel_pred_dot
+        # quad_pred = x_nom_prev.ori @ quad_pred_dot
 
-        # Predicted bias in accm and gyro must use discrete integration
-        accm_pred = x_nom_prev.accm_bias*np.exp(-self.accm_bias_p*dt)
-        gyro_pred = x_nom_prev.gyro_bias*np.exp(-self.gyro_bias_p*dt)
+        # # Predicted bias in accm and gyro must use discrete integration
+        # accm_pred = x_nom_prev.accm_bias*np.exp(-self.accm_bias_p*dt)
+        # gyro_pred = x_nom_prev.gyro_bias*np.exp(-self.gyro_bias_p*dt)
 
-        x_nom_pred = NominalState(pos_pred, vel_pred, quad_pred, accm_pred, gyro_pred, z_corr.ts)
+        # x_nom_pred = NominalState(pos_pred, vel_pred, quad_pred, accm_pred, gyro_pred, z_corr.ts)
 
-        # x_nom_pred = solution.eskf.ESKF.predict_nominal(self, x_nom_prev, z_corr)
+        x_nom_pred = solution.eskf.ESKF.predict_nominal(self, x_nom_prev, z_corr)
         return x_nom_pred
 
     def get_error_A_continous(self,
@@ -168,13 +168,17 @@ class ESKF():
         Returns:
             A (ndarray[15,15]): A
         """
+        # Remember that we have the corrected measurements z_corr
+        # Also remember that there is a difference between the measurement-frame and 
+        # body frame. This means that we must correct using self.accm_correction and
+        # self.gyro_correction. The accm_correction must be rotated
         A = np.zeros((15,15))
         A[block_3x3(0, 1)] = np.eye(3)
-        A[block_3x3(1, 2)] = -x_nom_prev.ori.R@get_cross_matrix(z_corr.acc - x_nom_prev.accm_bias)
-        A[block_3x3(2, 2)] = -get_cross_matrix(z_corr.avel - x_nom_prev.gyro_bias)
-        A[block_3x3(1, 3)] = -x_nom_prev.ori.R
+        A[block_3x3(1, 2)] = -x_nom_prev.ori.R @ get_cross_matrix(z_corr.acc)
+        A[block_3x3(2, 2)] = -get_cross_matrix(z_corr.avel)
+        A[block_3x3(1, 3)] = -x_nom_prev.ori.R @ self.accm_correction
         A[block_3x3(3, 3)] = -self.accm_bias_p*np.eye(3)
-        A[block_3x3(2, 4)] = -np.eye(3)
+        A[block_3x3(2, 4)] = -self.gyro_correction               
         A[block_3x3(4, 4)] = -self.gyro_bias_p*np.eye(3) 
 
         # A = solution.eskf.ESKF.get_error_A_continous(self, x_nom_prev, z_corr)
@@ -260,10 +264,11 @@ class ESKF():
         GQGTc = self.get_error_GQGT_continous(x_nom_prev)
 
         # Using Van Loans formula to extract the desired matrices
-        V = dt*np.block([
-                    [-Ac,                GQGTc],
-                    [np.zeros((15, 15)), Ac.T]
-                ])
+        V = np.zeros((30, 30))
+        V[0:15, 0:15] = -dt*Ac
+        V[0:15, 15:30] = dt*GQGTc
+        V[15:30, 15:30] = dt*Ac.T 
+
         VL = self.get_van_loan_matrix(V)
 
         Ad = VL[15:, 15:].T 
@@ -493,12 +498,22 @@ class ESKF():
             x_err_inj (ErrorStateGauss): error state gaussian after injection
         """
         # Using equation 10.72 to inject the nominal state
-        x_nom_inj = x_nom_prev
-        x_nom_inj.pos += x_err_upd.pos
-        x_nom_inj.vel += x_err_upd.vel
-        x_nom_inj.ori = x_nom_inj.ori.multiply(RotationQuaterion(1, 1/2.0*x_err_upd.avec))
-        x_nom_inj.accm_bias += x_err_upd.accm_bias
-        x_nom_inj.gyro_bias += x_err_upd.gyro_bias
+        # This solution is incorrect... Learned by error that += not correct for 
+        # arrays... (Python being pyton)
+        # x_nom_inj = x_nom_prev
+        # x_nom_inj.pos += x_err_upd.pos
+        # x_nom_inj.vel += x_err_upd.vel
+        # x_nom_inj.ori = x_nom_inj.ori.multiply(RotationQuaterion(1, 1/2.0*x_err_upd.avec))
+        # x_nom_inj.accm_bias += x_err_upd.accm_bias
+        # x_nom_inj.gyro_bias += x_err_upd.gyro_bias
+
+        pos = x_nom_prev.pos + x_err_upd.pos
+        vel = x_nom_prev.vel + x_err_upd.vel
+        ori = x_nom_prev.ori.multiply(RotationQuaterion(1, 1/2.0*x_err_upd.avec))
+        accm_bias = x_nom_prev.accm_bias + x_err_upd.accm_bias
+        gyro_bias = x_nom_prev.gyro_bias + x_err_upd.gyro_bias
+        
+        x_nom_inj = NominalState(pos, vel, ori, accm_bias, gyro_bias, x_nom_prev.ts)
 
         # Using equation 10.86 to reset the error state
         I_S_delta_theta = np.eye(3) - get_cross_matrix(1/2.0*x_err_upd.avec)
