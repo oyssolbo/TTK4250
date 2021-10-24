@@ -33,7 +33,10 @@ class MultiVarGaussStamped:
             assert self.mean.shape * 2 == self.cov.shape
             assert np.all(np.isfinite(self.mean))
             assert np.all(np.isfinite(self.cov))
-            assert isPSD(self.cov)
+            eigs = np.linalg.eigvals(self.cov)
+            assert np.all(np.linalg.eigvals(self.cov) >= 0)
+            assert np.allclose(self.cov, self.cov.T, atol=1e-6)
+            # assert isPSD(self.cov)
 
     @cached_property
     def ndim(self) -> int:
