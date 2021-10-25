@@ -4,16 +4,16 @@ from datatypes.eskf_params import ESKFTuningParams
 from datatypes.eskf_states import NominalState, ErrorStateGauss
 
 tuning_params_sim = ESKFTuningParams(
-    accm_std=1.4101e-3,
-    accm_bias_std=1.4101e-2,
-    accm_bias_p=1e-9,
+    accm_std=0.3,
+    accm_bias_std=1e-1,
+    accm_bias_p=1e-4,
 
-    gyro_std=2.0552e-4,
-    gyro_bias_std=5*2.0552e-05,
-    gyro_bias_p=1e-9,
+    gyro_std=0.5,
+    gyro_bias_std=1e-1,
+    gyro_bias_p=1e-4,
 
-    gnss_std_ne=0.3,
-    gnss_std_d=0.508
+    gnss_std_ne=5,
+    gnss_std_d=10
     )    
 
 x_nom_init_sim = NominalState(

@@ -170,3 +170,20 @@ tuning just_wtf:
     gnss_std_ne=1,
     gnss_std_d=0.1
 
+
+
+
+
+Note: After reading the dataclass, it is obvious that the tuning is focused around finding the R-
+matrix. Not the Q-matrix. 
+
+Thus we could make some analysis:
+    -the values in the matrix should represent the noise that the system could expect to measure,
+    or give an indication on how quickly the system changes
+    -since one now is tuning the R-matrix, increasing these values are equivalent with reducing 
+    the Q-matrix. Thus, to increase the NEES/NIS, one must increase the values in R
+
+
+From now on, I will only do superficial tuning
+
+Could ncrease the variance in gyro, acc and gnss 
