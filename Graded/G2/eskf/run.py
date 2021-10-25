@@ -57,7 +57,7 @@ def run_eskf(eskf_tuning_params: ESKFTuningParams,
                 and z_imu.ts >= gnss_measurements_copy[0].ts):
             z_gnss = gnss_measurements_copy.pop(0)
 
-            # we pretend z_gnss arrived at the same time as the last z_imu
+            # We pretend z_gnss arrived at the same time as the last z_imu
             # this is not ideal, but works fine as the IMU intervals are small
             z_gnss.ts = z_imu.ts
 
@@ -76,8 +76,7 @@ def run_eskf(eskf_tuning_params: ESKFTuningParams,
 def main():
     if config.RUN == 'sim':
         print(f"Running {config.MAX_TIME} seconds of simulated data set")
-        (x_true_data, z_imu_data, z_gnss_data, drone_params
-         ) = load_sim_data(config.MAX_TIME)
+        (x_true_data, z_imu_data, z_gnss_data, drone_params) = load_sim_data(config.MAX_TIME)
         tuning_params = tuning_sim.tuning_params_sim
         x_nom_init = tuning_sim.x_nom_init_sim
         x_err_init = tuning_sim.x_err_init_sim
@@ -85,8 +84,7 @@ def main():
     elif config.RUN == 'real':
         print(f"Running {config.MAX_TIME} seconds of real data set")
         x_true_data = None
-        (z_imu_data, z_gnss_data, drone_params
-         ) = load_real_data(config.MAX_TIME)
+        (z_imu_data, z_gnss_data, drone_params) = load_real_data(config.MAX_TIME)
         tuning_params = tuning_real.tuning_params_real
         x_nom_init = tuning_real.x_nom_init_real
         x_err_init = tuning_real.x_err_init_real
@@ -98,8 +96,7 @@ def main():
         z_imu_data, z_gnss_data,
         x_nom_init, x_err_init)
 
-    NIS_times, z_true_pred_pairs = get_time_pairs(z_gnss_data,
-                                                  z_gnss_pred_gauss_seq)
+    NIS_times, z_true_pred_pairs = get_time_pairs(z_gnss_data, z_gnss_pred_gauss_seq)
 
     NISxyz_seq = [(get_NIS(z, pred)) for z, pred in z_true_pred_pairs]
     NISxy_seq = [(get_NIS(z, pred, [0, 1])) for z, pred in z_true_pred_pairs]

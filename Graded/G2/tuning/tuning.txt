@@ -151,5 +151,22 @@ Tuning 2:
     when tuning this shit further
 
 
+But one ought to ask the question whether we are tuning the Q or the R matrix. We have seen before that 
+by increasing the value in std, the estimates are noisier 
 
+
+
+
+
+tuning just_wtf:
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.01,
+
+    gyro_std=1,
+    gyro_bias_std=0.001,
+    gyro_bias_p=0.01,
+
+    gnss_std_ne=1,
+    gnss_std_d=0.1
 
