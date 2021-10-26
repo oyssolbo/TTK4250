@@ -12,8 +12,8 @@ tuning_params_sim = ESKFTuningParams(
     gyro_bias_std=1e-1,
     gyro_bias_p=1e-4,
 
-    gnss_std_ne=5,
-    gnss_std_d=10
+    gnss_std_ne=2,
+    gnss_std_d=5
     )    
 
 x_nom_init_sim = NominalState(
