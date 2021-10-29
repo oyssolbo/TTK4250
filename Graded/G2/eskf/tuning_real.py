@@ -4,16 +4,26 @@ from datatypes.eskf_params import ESKFTuningParams
 from datatypes.eskf_states import NominalState, ErrorStateGauss
 
 tuning_params_real = ESKFTuningParams(
-    accm_std        = 0.105 * 1e-3,
-    accm_bias_std   = 4 * 1e-5,
-    accm_bias_p     = 0.07 / 60.0,
+    # accm_std        = 1e-2, # 0.105 * 1e-3,
+    # accm_bias_std   = 1e-5,
+    # accm_bias_p     = 1e-8, #0.07 / 60.0,
 
-    gyro_std        = 8.0 / 3600.0,
-    gyro_bias_std   = np.deg2rad(0.3/3600),
-    gyro_bias_p     = np.deg2rad(0.15 / 60),
+    # gyro_std        = 1e-3, # 8.0 / 3600.0,
+    # gyro_bias_std   = 5e-3, #np.deg2rad(0.3/3600),
+    # gyro_bias_p     = 1e-8, #np.deg2rad(0.15 / 60),
 
-    gnss_std_ne     = 5,
-    gnss_std_d      = 10
+    # gnss_std_ne     = 1.5,
+    # gnss_std_d      = 3
+    accm_std        = 0.01,
+    accm_bias_std   = 0.00025,
+    accm_bias_p     = 1e-8,
+
+    gyro_std        = 0.05,
+    gyro_bias_std   = 0.0005,
+    gyro_bias_p     = 1e-7,
+
+    gnss_std_ne     = 0.075,
+    gnss_std_d      = 0.75
     )  
 
 x_nom_init_real = NominalState(
@@ -27,11 +37,11 @@ x_nom_init_real = NominalState(
 init_std_real = np.repeat(
     repeats=3,                                  # Repeat each element 3 times
     a=[
-        1,                                      # Position
-        1,                                      # Velocity
-        0.00183,                          # Angle vector
-        0.01,                                      # Accelerometer bias
-        0.01                                       # Gyro bias
+        2,                                      # Position
+        2,                                      # Velocity
+        np.deg2rad(0.1),                          # Angle vector
+        0.1,                                      # Accelerometer bias
+        0.001                                       # Gyro bias
     ])
 
 
