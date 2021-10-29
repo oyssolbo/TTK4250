@@ -1,0 +1,194 @@
+Some initial considerations:
+    -We know that the variance in z_gnss will be worse than the xy_gnss. This 
+        means that one should trust less on the measurements in down-direction
+        compared to the measurements in the xy-plane
+    -We also know that the biases will drift slowly, however it is known that 
+        the bias corresponding to the gyro will drift quicker than the bias 
+        for the accelerometer. This means that the bias for the gyro must 
+        have some higher values compared to the accelerometer
+
+
+Initial values
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=1,
+
+    gyro_std=1,
+    gyro_bias_std=1,
+    gyro_bias_p=1,
+
+    gnss_std_ne=1,
+    gnss_std_d=1
+
+    Results: 
+    NEES:
+        pos: 10.4 inside, 88.2 below, 1.4 above
+        vel: 3.9 inside, 93.6 below, 2.5 above
+        ori: 2.4 inside, 97.6 below, 0 above
+        a_b: 0.1 inside, 99.9 below, 0 above
+        w_b: 0.3 inside, 99.7 below, 0 above
+    NIS:
+        xyz: 22.8 inside, 75.3 below, 1.8 above
+        xy: 18 inside, 80.8 below, 1.2 above
+        z: 84.5 inside, 15.2 below, 0.3 above
+
+Hypotehesis for tuning 0:
+    -Since the rotation-matrix is used everywhere, it is extremely important to have 
+        a good estimate for the orientation of the aircraft. Otherwise, it will be 
+        difficult to get good estimates for other states
+    -One can see that all of the state estimates are rather noisy and dependent on the 
+        measurements. To increase the NEES/NIS, one must lower the values in Q. This will 
+        make the ESKF rely less on the measurements and more on the model.
+    -Thus, lowering all of the values to get less noisy state estimates and push NEES/NIS up:
+        -severly lowing the values for bias (since these will change slowly). Since the gyro 
+            will drift quicker than the accelerometer, it is requird to have higher value for 
+            the gyro than the accelerometer
+        -reducing the value for gnss_std_d, such that it is less than gnss_std_ne
+
+
+Tuning 0:
+    accm_std=0.01,
+    accm_bias_std=0.01,
+    accm_bias_p=0.00001,
+
+    gyro_std=0.01,
+    gyro_bias_std=0.01,
+    gyro_bias_p=0.01,
+
+    gnss_std_ne=0.5,
+    gnss_std_d=0.1
+
+    Results: 
+    NEES:
+        pos: 9 inside, 0.6 below, 90.4 above
+        vel: 5 inside, 0.6 below, 94.2 above
+        ori: 0.2 inside, 0.2 below, 99.6 above
+        a_b: 0.5 inside, 0.2 below, 99.3 above
+        w_b: 0 inside, 0.2 below, 99.8 above
+    NIS:
+        xyz: 6.5 inside, 0.8 below, 92.7 above
+        xy: 19.8 inside, 1.8 below, 78.3 above
+        z: 21.3 inside, 0.8 below, 77.8 above
+
+    It is interesting to note that the errors have increased dramatically, especially in the 
+    orientation. This could mean that the filter relies too much on the GNSS to estimate the 
+    orientation and relying enough on the IMU. This means that the noise in GNSS will determine
+    the orientation of the aircraft, and not the IMU itself. 
+    
+    Based on the previous paragraph, one could argue that the GNSS should be trusted less, while 
+    the IMU and accelerometer should be trusted more. 
+
+    One can see that the filter is generally overconfident. By increasing the values in Q, the filter 
+    will rely more on the measurements and less on the model, thus making it less confident.
+
+Tuning 1:
+    accm_std=0.1,
+    accm_bias_std=0.01,
+    accm_bias_p=0.0001,
+
+    gyro_std=0.1,
+    gyro_bias_std=0.01,
+    gyro_bias_p=0.01,
+
+    gnss_std_ne=0.1,
+    gnss_std_d=0.05
+
+    Results: 
+    NEES:
+        pos: 7.9 inside, 0.3 below, 91.9 above
+        vel: 13.4 inside, 0.3 below, 86.2 above
+        ori: 0.2 inside, 0.3 below, 99.5 above
+        a_b: 0.3 inside, 0.2 below, 99.5 above
+        w_b: 12.9 inside, 1.5 below, 85.5 above
+    NIS:
+        xyz: 9.5 inside, 0 below, 90.5 above
+        xy: 32.7 inside, 0.3 below, 67 above
+        z: 26.3 inside, 0.7 below, 73 above
+
+    As one should expect, the measurements got noisier.
+
+    However, one must also take the update frequency into account. Since the IMU-measurements has 
+    a frequency of 100 Hz, while the GNSS has an update frequency of 1 Hz, we must trust the GNSS-
+    measurements more. The GNSS-measurements are mainly used as an aiding-tool. Thus, preventing the
+    IMU-estimates to diverge towards infinity. Therefore, trust the GNSS-measurements more, and not 
+    trust the IMU-measurements as much
+
+
+Tuning 2:
+    accm_std=0.01,
+    accm_bias_std=0.001,
+    accm_bias_p=0.0001,
+
+    gyro_std=0.01,
+    gyro_bias_std=0.001,
+    gyro_bias_p=0.01,
+
+    gnss_std_ne=2,
+    gnss_std_d=1
+
+
+    Results: 
+    NEES:
+        pos: 4.3 inside, 0.2 below, 95.5 above
+        vel: 0.4 inside, 0 below, 99.5 above
+        ori: 0.5 inside, 0.2 below, 99.3 above
+        a_b: 0.7 inside, 0.2 below, 99.2 above
+        w_b: 0 inside, 0.2 below, 99.8 above
+    NIS:
+        xyz: 7.2 inside, 0 below, 92.8 above
+        xy: 23.5 inside, 0.3 below, 76.2 above
+        z: 23 inside, 0.7 below, 76.3 above
+
+    One can see that the measurements are far less noisy, however the filter is too overconfident.
+    The response diverges, even though it is prefly pushed into the correct coordinates using the 
+    GNSS. But honestly, it is better to wait on somebody else to discuss this shit with...
+    
+    It is also discovered that too high values in GNSS asserts isPSD(). But why would it trigger this 
+    assert? 
+
+    It looks like what is triggering the assertion, is numerical inaccuracies. This means that the 
+    filter should be tuned such that these errors do not occur. That means that we must be careful
+    when tuning this shit further
+
+
+But one ought to ask the question whether we are tuning the Q or the R matrix. We have seen before that 
+by increasing the value in std, the estimates are noisier 
+
+
+
+
+
+tuning just_wtf:
+    accm_std=1,
+    accm_bias_std=1,
+    accm_bias_p=0.01,
+
+    gyro_std=1,
+    gyro_bias_std=0.001,
+    gyro_bias_p=0.01,
+
+    gnss_std_ne=1,
+    gnss_std_d=0.1
+
+
+
+
+
+Note: After reading the dataclass, it is obvious that the tuning is focused around finding the R-
+matrix. Not the Q-matrix. 
+
+Thus we could make some analysis:
+    -the values in the matrix should represent the noise that the system could expect to measure,
+    or give an indication on how quickly the system changes
+    -since one now is tuning the R-matrix, increasing these values are equivalent with reducing 
+    the Q-matrix. Thus, to increase the NEES/NIS, one must increase the values in R
+
+
+From now on, I will only do superficial tuning
+
+Could ncrease the variance in gyro, acc and gnss 
+
+
+For tuning this shit:
+
+
