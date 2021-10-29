@@ -9,6 +9,9 @@ from datatypes.eskf_states import NominalState
 import config
 from scipy.stats import chi2
 
+from utils import anxs
+from utils import rms
+
 plot_folder = Path(__file__).parents[1].joinpath('plots')
 plot_folder.mkdir(exist_ok=True)
 
@@ -53,28 +56,82 @@ def plot_state(x_nom_seq: Sequence[NominalState]):
     fig.savefig(plot_folder.joinpath("States.pdf"))
 
 
+def plot_rms_values(times: Sequence[float], errors: Sequence['ndarray[15]']):
+    fig, ax = plt.subplots(5, sharex=True, figsize=(6.4, 7))
+    fig.canvas.manager.set_window_title("RMS")
+
+    rms_pos = rms.rms(errors[:, 0:3], 3)[:,0]
+    rms_vel = rms.rms(errors[:, 3:6], 3)[:,0]
+    rms_ori = rms.rms(np.rad2deg(errors[:, 6:9]), 3)[:,0]
+    rms_alpha = rms.rms(errors[:, 9:12], 3)[:,0]
+    rms_omega = rms.rms(np.rad2deg(errors[:, 12:15]), 3)[:,0]
+
+    ax[0].plot(times, rms_pos, label=r"$\mathbf{\rho}$-RMS")
+    ax[0].set_ylabel(r"$\mathbf{\delta \rho}$ [$m$]")
+
+    ax[1].plot(times, rms_vel, label=r"$\mathbf{v}$-RMS")
+    ax[1].set_ylabel(r"$\mathbf{\delta v}$ [$m/s$]")
+
+    ax[2].plot(times, rms_ori, label=r"$\mathbf{\theta}$-RMS")
+    ax[2].set_ylabel(r"$\mathbf{\delta \Theta}$ [deg]")
+
+    ax[3].plot(times, rms_alpha, label=r"$\mathbf{\alpha}$-RMS")
+    ax[3].set_ylabel(r"$\mathbf{\delta a}_b$ [$m/s^2$]")
+
+    ax[4].plot(times, rms_omega, label=r"$\mathbf{\omega}$-RMS")
+    ax[4].set_ylabel(r"$\mathbf{ \delta\omega}_b$ [deg$/s$]")
+
+    ax[-1].set_xlabel("$t$ [$s$]")
+
+    for i in range(len(ax)):
+        ax[i].legend(loc="upper right")
+
+    fig.align_ylabels(ax)
+    fig.subplots_adjust(left=0.15, right=0.97, bottom=0.08, top=0.97,
+                        hspace=0.1)
+    fig.savefig(plot_folder.joinpath("RMS.pdf"))
+
+
 def plot_errors(times: Sequence[float], errors: Sequence['ndarray[15]']):
     fig, ax = plt.subplots(5, sharex=True, figsize=(6.4, 7))
     fig.canvas.manager.set_window_title("Errors")
 
+    # Calculating rmse-values
+    rmse_pos = rms.rmse(errors[:, 0:3], np.zeros_like(errors[:, 0:3]))
+    rmse_vel = rms.rmse(errors[:, 3:6], np.zeros_like(errors[:, 6:9]))
+    rmse_ori = rms.rmse(np.rad2deg(errors[:, 6:9]), np.zeros_like(errors[:, 6:9]))
+    rmse_alpha = rms.rmse(errors[:, 9:12], np.zeros_like(errors[:, 9:12]))
+    rmse_omega = rms.rmse(np.rad2deg(errors[:, 12:15]), np.zeros_like(errors[:, 12:15]))
+
+    rmse_pos_arr = rmse_pos * (np.ones_like(errors[:, 0:3])[:,0])
+    rmse_vel_arr = rmse_vel * (np.ones_like(errors[:, 3:6])[:,0])
+    rmse_ori_arr = rmse_ori * (np.ones_like(errors[:, 6:9])[:,0])
+    rmse_alpha_arr = rmse_alpha * (np.ones_like(errors[:, 9:12])[:,0])
+    rmse_omega_arr = rmse_omega * (np.ones_like(errors[:, 12:15])[:,0])
+
     ax[0].plot(times, errors[:, :3],
                label=[f"${s}$" for s in "xyz"])
+    ax[0].plot(times, rmse_pos_arr, color='r', label="ARMSE")
     ax[0].set_ylabel(r"$\mathbf{\delta \rho}$ [$m$]")
 
     ax[1].plot(times, errors[:, 3:6],
                label=[f"${s}$" for s in "uvw"])
+    ax[1].plot(times, rmse_vel_arr, color='r', label="ARMSE")
     ax[1].set_ylabel(r"$\mathbf{\delta v}$ [$m/s$]")
 
     ax[2].plot(times, np.rad2deg(errors[:, 6:9]),
                label=[f"${s}$" for s in [r"\phi", r"\theta", r"\psi"]])
+    ax[2].plot(times, rmse_ori_arr, color='r', label="ARMSE")
     ax[2].set_ylabel(r"$\mathbf{\delta \Theta}$ [deg]")
 
     ax[3].plot(times, errors[:, 9:12],
                label=[f"${s}$" for s in "xyz"])
+    ax[3].plot(times, rmse_alpha_arr, color='r', label="ARMSE")
     ax[3].set_ylabel(r"$\mathbf{\delta a}_b$ [$m/s^2$]")
 
     ax[4].plot(times, np.rad2deg(errors[:, 12:15]),
                label=[f"${s}$" for s in [r"\phi", r"\theta", r"\psi"]])
+    ax[4].plot(times, rmse_omega_arr, color='r', label="ARMSE")
     ax[4].set_ylabel(r"$\mathbf{ \delta\omega}_b$ [deg$/s$]")
 
     ax[-1].set_xlabel("$t$ [$s$]")
@@ -86,6 +143,8 @@ def plot_errors(times: Sequence[float], errors: Sequence['ndarray[15]']):
     fig.subplots_adjust(left=0.15, right=0.97, bottom=0.08, top=0.97,
                         hspace=0.1)
     fig.savefig(plot_folder.joinpath("Errors.pdf"))
+
+    plot_rms_values(times, errors)
 
 
 def plot_position_path_3d(x_nom, x_true=None):
@@ -123,14 +182,25 @@ def plot_nis(times, NIS_xyz, NIS_xy, NIS_z, confidence=0.90):
         frac_below = n_below/n_total
         frac_above = n_above/n_total
 
+        # Calculating and plotting ANIS
+        ANIS_val = anxs.anXs(NIS)
+        ANIS = ANIS_val * np.ones_like(NIS)
+
+        # Plot NIS
         ax[i].plot(times, NIS, label=fr"$NIS_{{{name}}}$")
+        ax[i].plot(times, ANIS, color='r', label=fr"$ANIS_{{{name}}}$")
         ax[i].hlines([ci_lower, ci_upper], min(times), max(times), 'C3', ":",
                      label=f"{confidence:2.1%} conf")
         ax[i].set_title(
             f"NIS ${{{name}}}$ "
             f"({frac_inside:2.1%} inside, {frac_below:2.1%} below, "
             f"{frac_above:2.1%} above "
-            f" [{confidence:2.1%} conf])")
+            f" [{confidence:2.1%} conf])"
+            "\n"
+            f"ANIS = {ANIS_val:2.2} "
+            f"Lower-limit = {ci_lower:2.2} "
+            f"Upper-limit = {ci_upper:2.2} "
+        )
 
         ax[i].set_yscale('log')
 
@@ -158,7 +228,13 @@ def plot_nees(times, pos, vel, avec, accm, gyro, confidence=0.90):
         frac_below = n_below/n_total
         frac_above = n_above/n_total
 
+        # Calculating and plotting ANEES
+        ANEES_val = anxs.anXs(NEES)
+        ANEES = ANEES_val * np.ones_like(NEES)
+
+        # Plot NEES
         ax[i].plot(times, NEES, label=fr"$NEES_{{{name}}}$")
+        ax[i].plot(times, ANEES, color='r', label=fr"$ANEES_{{{name}}}$")
         ax[i].hlines([ci_lower, ci_upper], min(times), max(times), 'C3', ":",
                      label=f"{confidence:2.1%} conf")
         ax[i].set_title(
@@ -166,42 +242,10 @@ def plot_nees(times, pos, vel, avec, accm, gyro, confidence=0.90):
             fr"({frac_inside:2.1%} inside, "
             f" {frac_below:2.1%} below, {frac_above:2.1%} above "
             f"[{confidence:2.1%} conf])"
-        )
-
-        ax[i].set_yscale('log')
-
-    ax[-1].set_xlabel('$t$ [$s$]')
-    fig.align_ylabels(ax)
-    fig.subplots_adjust(left=0.15, right=0.97, bottom=0.06, top=0.94,
-                        hspace=0.3)
-    fig.savefig(plot_folder.joinpath('NEES.pdf'))
-
-
-def plot_anees():
-    ci_lower, ci_upper = np.array(chi2.interval(confidence, 4))
-    fig, ax = plt.subplots(5, 1, sharex=True, figsize=(6.4, 9))
-    fig.canvas.manager.set_window_title("NEES")
-
-    enu = enumerate(zip(
-        [pos, vel, avec, accm, gyro],
-        [r"\mathbf{\rho}", r"\mathbf{v}", r"\mathbf{\Theta}",
-         r"\mathbf{a}_b", r"\mathbf{\omega}_b"]))
-    for i, (NEES, name) in enu:
-        n_total = len(NEES)
-        n_below = len([None for value in NEES if value < ci_lower])
-        n_above = len([None for value in NEES if value > ci_upper])
-        frac_inside = (n_total - n_below - n_above)/n_total
-        frac_below = n_below/n_total
-        frac_above = n_above/n_total
-
-        ax[i].plot(times, NEES, label=fr"$NEES_{{{name}}}$")
-        ax[i].hlines([ci_lower, ci_upper], min(times), max(times), 'C3', ":",
-                     label=f"{confidence:2.1%} conf")
-        ax[i].set_title(
-            fr"NEES ${{{name}}}$ "
-            fr"({frac_inside:2.1%} inside, "
-            f" {frac_below:2.1%} below, {frac_above:2.1%} above "
-            f"[{confidence:2.1%} conf])"
+            "\n"
+            f"ANEES = {ANEES_val:2.2} "
+            f"Lower-limit = {ci_lower:2.2} "
+            f"Upper-limit = {ci_upper:2.2} "
         )
 
         ax[i].set_yscale('log')

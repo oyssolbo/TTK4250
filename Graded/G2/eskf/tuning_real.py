@@ -14,12 +14,12 @@ tuning_params_real = ESKFTuningParams(
 
     # gnss_std_ne     = 1.5,
     # gnss_std_d      = 3
-    accm_std        = 0.025,
-    accm_bias_std   = 0.0002,
+    accm_std        = 0.01,
+    accm_bias_std   = 0.00025,
     accm_bias_p     = 1e-8,
 
     gyro_std        = 0.039,
-    gyro_bias_std   = 0.0007,
+    gyro_bias_std   = 0.00075,
     gyro_bias_p     = 1e-6,
 
     gnss_std_ne     = 0.5,
