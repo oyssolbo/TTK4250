@@ -36,4 +36,3 @@ if __name__ == '__main__':
 
     # print(rms(a0, 2))
     # print()
-
