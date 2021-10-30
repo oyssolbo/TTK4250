@@ -175,3 +175,39 @@ def plot_nees(times, pos, vel, avec, accm, gyro, confidence=0.90):
     fig.subplots_adjust(left=0.15, right=0.97, bottom=0.06, top=0.94,
                         hspace=0.3)
     fig.savefig(plot_folder.joinpath('NEES.pdf'))
+
+
+def plot_anees():
+    ci_lower, ci_upper = np.array(chi2.interval(confidence, 4))
+    fig, ax = plt.subplots(5, 1, sharex=True, figsize=(6.4, 9))
+    fig.canvas.manager.set_window_title("NEES")
+
+    enu = enumerate(zip(
+        [pos, vel, avec, accm, gyro],
+        [r"\mathbf{\rho}", r"\mathbf{v}", r"\mathbf{\Theta}",
+         r"\mathbf{a}_b", r"\mathbf{\omega}_b"]))
+    for i, (NEES, name) in enu:
+        n_total = len(NEES)
+        n_below = len([None for value in NEES if value < ci_lower])
+        n_above = len([None for value in NEES if value > ci_upper])
+        frac_inside = (n_total - n_below - n_above)/n_total
+        frac_below = n_below/n_total
+        frac_above = n_above/n_total
+
+        ax[i].plot(times, NEES, label=fr"$NEES_{{{name}}}$")
+        ax[i].hlines([ci_lower, ci_upper], min(times), max(times), 'C3', ":",
+                     label=f"{confidence:2.1%} conf")
+        ax[i].set_title(
+            fr"NEES ${{{name}}}$ "
+            fr"({frac_inside:2.1%} inside, "
+            f" {frac_below:2.1%} below, {frac_above:2.1%} above "
+            f"[{confidence:2.1%} conf])"
+        )
+
+        ax[i].set_yscale('log')
+
+    ax[-1].set_xlabel('$t$ [$s$]')
+    fig.align_ylabels(ax)
+    fig.subplots_adjust(left=0.15, right=0.97, bottom=0.06, top=0.94,
+                        hspace=0.3)
+    fig.savefig(plot_folder.joinpath('NEES.pdf'))
