@@ -187,3 +187,8 @@ Thus we could make some analysis:
 From now on, I will only do superficial tuning
 
 Could ncrease the variance in gyro, acc and gnss 
+
+
+For tuning this shit:
+
+
