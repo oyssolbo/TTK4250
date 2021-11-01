@@ -58,7 +58,7 @@ def plot_state(x_nom_seq: Sequence[NominalState]):
 
 def plot_rms_values(times: Sequence[float], errors: Sequence['ndarray[15]']):
     fig, ax = plt.subplots(5, sharex=True, figsize=(6.4, 7))
-    fig.canvas.manager.set_window_title("RMS")
+    fig.canvas.manager.set_window_title("RMES")
 
     rms_pos = rms.rms(errors[:, 0:3], 3)[:,0]
     rms_vel = rms.rms(errors[:, 3:6], 3)[:,0]
@@ -89,50 +89,50 @@ def plot_rms_values(times: Sequence[float], errors: Sequence['ndarray[15]']):
     # Bit hardcoded, but I am fucking tired. If this POS(e) work, I am done...
     # It should be done via a for-loop however...
     ax[0].plot(times, rms_pos, label=r"$\mathbf{\rho}$-RMSE(t)")
-    ax[0].plot(times, rmse_pos_arr, color='r', label="ARMSE")
+    ax[0].plot(times, rmse_pos_arr, color='r', label=f"ARMSE = ${rmse_pos:2.2}$")
     ax[0].set_ylabel(r"$\mathbf{\delta \rho}$ [$m$]")
-    ax[0].set_title(
-        f"ARMSE-value: {rmse_pos:2.2}"
-        f"Min RMS-value: {min_rms_pos:2.2} "
-        f"Max RMS-value: {max_rms_pos:2.2}"
-    )
+    # ax[0].set_title(
+    #     f"ARMSE-value: {rmse_pos:2.2} "
+    #     f"Min RMS-value: {min_rms_pos:2.2} "
+    #     f"Max RMS-value: {max_rms_pos:2.2}"
+    # )
 
     ax[1].plot(times, rms_vel, label=r"$\mathbf{v}$-RMSE(t)")
-    ax[1].plot(times, rmse_vel_arr, color='r', label="ARMSE")
+    ax[1].plot(times, rmse_vel_arr, color='r', label=f"ARMSE = ${rmse_vel:2.2}$")
     ax[1].set_ylabel(r"$\mathbf{\delta v}$ [$m/s$]")
-    ax[1].set_title(
-        f"ARMSE-value: {rmse_vel:2.2}"
-        f"Min RMS-value: {min_rms_vel:2.2} "
-        f"Max RMS-value: {max_rms_vel:2.2}"
-    )
+    # ax[1].set_title(
+    #     f"ARMSE-value: {rmse_vel:2.2} "
+    #     f"Min RMS-value: {min_rms_vel:2.2} "
+    #     f"Max RMS-value: {max_rms_vel:2.2}"
+    # )
 
 
     ax[2].plot(times, rms_ori, label=r"$\mathbf{\theta}$-RMS(t)")
-    ax[2].plot(times, rmse_ori_arr, color='r', label="ARMSE")
+    ax[2].plot(times, rmse_ori_arr, color='r', label=f"ARMSE = ${rmse_ori:2.2}$")
     ax[2].set_ylabel(r"$\mathbf{\delta \Theta}$ [deg]")
-    ax[2].set_title(
-        f"ARMSE-value: {rmse_ori:2.2}"
-        f"Min RMS-value: {min_rms_ori:2.2} "
-        f"Max RMS-value: {max_rms_ori:2.2}"
-    )
+    # ax[2].set_title(
+    #     f"ARMSE-value: {rmse_ori:2.2} "
+    #     f"Min RMS-value: {min_rms_ori:2.2} "
+    #     f"Max RMS-value: {max_rms_ori:2.2}"
+    # )
 
     ax[3].plot(times, rms_alpha, label=r"$\mathbf{\alpha}$-RMS(t)")
-    ax[3].plot(times, rmse_alpha_arr, color='r', label="ARMSE")
+    ax[3].plot(times, rmse_alpha_arr, color='r', label=f"ARMSE = ${rmse_alpha:2.2}$")
     ax[3].set_ylabel(r"$\mathbf{\delta a}_b$ [$m/s^2$]")
-    ax[3].set_title(
-        f"ARMSE: {rmse_alpha:2.2}"
-        f"Min RMS-value: {min_rms_alpha:2.2} "
-        f"Max RMS-value: {max_rms_alpha:2.2}"
-    )
+    # ax[3].set_title(
+    #     f"ARMSE: {rmse_alpha:2.2} "
+    #     f"Min RMS-value: {min_rms_alpha:2.2} "
+    #     f"Max RMS-value: {max_rms_alpha:2.2}"
+    # )
 
     ax[4].plot(times, rms_omega, label=r"$\mathbf{\omega}$-RMS(t)")
-    ax[4].plot(times, rmse_omega_arr, color='r', label="ARMSE")
+    ax[4].plot(times, rmse_omega_arr, color='r', label=f"ARMSE = ${rmse_omega:2.2}$")
     ax[4].set_ylabel(r"$\mathbf{ \delta\omega}_b$ [deg$/s$]")
-    ax[4].set_title(
-        f"ARMSE: {rmse_omega:2.2}"
-        f"Min RMS-value: {min_rms_omega:2.2} "
-        f"Max RMS-value: {max_rms_omega:2.2}"
-    )
+    # ax[4].set_title(
+    #     f"ARMSE: {rmse_omega:2.2} "
+    #     f"Min RMS-value: {min_rms_omega:2.2} "
+    #     f"Max RMS-value: {max_rms_omega:2.2}"
+    # )
 
     ax[-1].set_xlabel("$t$ [$s$]")
 
@@ -251,8 +251,8 @@ def plot_nis(times, NIS_xyz, NIS_xy, NIS_z, confidence=0.90):
             f" [{confidence:2.1%} conf])"
             "\n"
             f"ANIS = {ANIS_val:2.2} "
-            f"Lower-limit = {ci_lower:2.2} "
-            f"Upper-limit = {ci_upper:2.2} "
+            f"chi2-lower = {ci_lower:2.2} "
+            f"chi2-upper = {ci_upper:2.2} "
         )
 
         ax[i].set_yscale('log')
@@ -297,8 +297,8 @@ def plot_nees(times, pos, vel, avec, accm, gyro, confidence=0.90):
             f"[{confidence:2.1%} conf])"
             "\n"
             f"ANEES = {ANEES_val:2.2} "
-            f"Lower-limit = {ci_lower:2.2} "
-            f"Upper-limit = {ci_upper:2.2} "
+            f"chi2-lower = {ci_lower:2.2} "
+            f"chi2-upper = {ci_upper:2.2} "
         )
 
         ax[i].set_yscale('log')
