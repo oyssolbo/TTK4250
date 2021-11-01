@@ -50,6 +50,14 @@ class ESKF():
 
     def __post_init__(self):
 
+        # 6c)
+        # self.accm_correction = np.eye(3)
+        # self.gyro_correction = np.eye(3)
+
+        # 7b)
+        # self.accm_correction = np.around(self.accm_correction, 1)
+        # self.gyro_correction = np.around(self.gyro_correction, 1)
+
         self.Q_err = scipy.linalg.block_diag(
             self.accm_std ** 2 * self.accm_correction @ self.accm_correction.T,
             self.gyro_std ** 2 * self.gyro_correction @ self.gyro_correction.T,
@@ -57,12 +65,6 @@ class ESKF():
             self.gyro_bias_std ** 2 * np.eye(3),
         )
         self.gnss_cov = np.diag([self.gnss_std_ne]*2 + [self.gnss_std_d])**2
-
-        # self.accm_correction = np.eye(3)
-        # self.gyro_correction = np.eye(3)
-
-        # self.accm_correction = np.zeros((3, 3))
-        # self.gyro_correction = np.zeros((3, 3))
 
     def correct_z_imu(self,
                       x_nom_prev: NominalState,
@@ -329,6 +331,9 @@ class ESKF():
             x_nom_pred (NominalState): predicted nominal state
             x_err_pred (ErrorStateGauss): predicted error state
         """
+        # if np.isnan(np.sum(x_nom_prev.ori.vec_part)) or np.isnan(x_nom_prev.ori.real_part):
+        #     x_nom_prev.ori = RotationQuaterion(1, np.zeros(3))
+
         # Correcting the measurement
         z_corr = self.correct_z_imu(x_nom_prev, z_imu)
 
