@@ -58,7 +58,7 @@ def plot_state(x_nom_seq: Sequence[NominalState]):
 
 def plot_rms_values(times: Sequence[float], errors: Sequence['ndarray[15]']):
     fig, ax = plt.subplots(5, sharex=True, figsize=(6.4, 7))
-    fig.canvas.manager.set_window_title("RMES")
+    fig.canvas.manager.set_window_title("RMSE")
 
     rms_pos = rms.rms(errors[:, 0:3], 3)[:,0]
     rms_vel = rms.rms(errors[:, 3:6], 3)[:,0]
@@ -237,6 +237,9 @@ def plot_nis(times, NIS_xyz, NIS_xy, NIS_z, confidence=0.90):
 
         # Calculating and plotting ANIS
         ANIS_val = anxs.anXs(NIS)
+        ANIS_lower, ANIS_upper = anxs.anXs_bounds(confidence, n_total*nstates, n_total)
+        # ANIS_lower = ci_lower/n_total
+        # ANIS_upper = ci_upper/n_total
         ANIS = ANIS_val * np.ones_like(NIS)
 
         # Plot NIS
@@ -251,8 +254,8 @@ def plot_nis(times, NIS_xyz, NIS_xy, NIS_z, confidence=0.90):
             f" [{confidence:2.1%} conf])"
             "\n"
             f"ANIS = {ANIS_val:2.2} "
-            f"chi2-lower = {ci_lower:2.2} "
-            f"chi2-upper = {ci_upper:2.2} "
+            f"Lower bound = {ANIS_lower:2.2} "
+            f"Upper bound = {ANIS_upper:2.2} "
         )
 
         ax[i].set_yscale('log')
@@ -283,6 +286,9 @@ def plot_nees(times, pos, vel, avec, accm, gyro, confidence=0.90):
 
         # Calculating and plotting ANEES
         ANEES_val = anxs.anXs(NEES)
+        ANEES_lower, ANEES_upper = anxs.anXs_bounds(confidence, 3*n_total, n_total)
+        # ANEES_lower = ci_lower/n_total
+        # ANEES_upper = ci_upper/n_total
         ANEES = ANEES_val * np.ones_like(NEES)
 
         # Plot NEES
@@ -297,8 +303,8 @@ def plot_nees(times, pos, vel, avec, accm, gyro, confidence=0.90):
             f"[{confidence:2.1%} conf])"
             "\n"
             f"ANEES = {ANEES_val:2.2} "
-            f"chi2-lower = {ci_lower:2.2} "
-            f"chi2-upper = {ci_upper:2.2} "
+            f"Lower bound = {ANEES_lower:2.2} "
+            f"Upper bound = {ANEES_upper:2.2} "
         )
 
         ax[i].set_yscale('log')

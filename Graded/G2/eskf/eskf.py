@@ -61,6 +61,9 @@ class ESKF():
         # self.accm_correction = np.eye(3)
         # self.gyro_correction = np.eye(3)
 
+        # self.accm_correction = np.zeros((3, 3))
+        # self.gyro_correction = np.zeros((3, 3))
+
     def correct_z_imu(self,
                       x_nom_prev: NominalState,
                       z_imu: ImuMeasurement,
@@ -573,6 +576,8 @@ class ESKF():
                 measurement, used for NIS calculations.
         """
         # Updating the system whenever a new GNSS-measurement is received 
+        # if np.isnan(np.sum(x_nom_prev.ori.vec_part)) or np.isnan(x_nom_prev.ori.real_part):
+        #     x_nom_prev.ori = RotationQuaterion(1, np.zeros(3))
 
         # Predict the GNSS-measurement
         z_gnss_pred_gauss = self.predict_gnss_measurement(x_nom_prev, x_err_prev, z_gnss)
