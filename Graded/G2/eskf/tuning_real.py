@@ -14,23 +14,23 @@ tuning_params_real = ESKFTuningParams(
 
     # gnss_std_ne     = 1.5,
     # gnss_std_d      = 3
-    accm_std        = 0.0125,
-    accm_bias_std   = 0.00075,
-    accm_bias_p     = 0.0025,
+    accm_std        = 0.02,
+    accm_bias_std   = 0.001,
+    accm_bias_p     = 0.001,
 
-    gyro_std        = 0.000075, 
+    gyro_std        = 0.0001, 
     gyro_bias_std   = 0.00025,
-    gyro_bias_p     = 0.001, 
+    gyro_bias_p     = 0.0015, 
 
-    gnss_std_ne     = 0.275,
-    gnss_std_d      = 0.65#, 
+    gnss_std_ne     = 0.25,
+    gnss_std_d      = 0.75#, 
     # use_gnss_accuracy=True
     )  
 
 x_nom_init_real = NominalState(
     np.array([0, 0, -5]),                        # Position
     np.array([20, 0, 0]),                        # Velocity
-    RotationQuaterion.from_euler([-50, 0, 185]),    # Orientation
+    RotationQuaterion.from_euler([-25, 5, 190]),    # Orientation
     np.zeros(3),                                # Accelerometer bias
     np.zeros(3),                                # Gyro bias
     ts=0)
