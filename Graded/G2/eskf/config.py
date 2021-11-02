@@ -1,6 +1,6 @@
 import numpy as np
 # Set to 'sim' or 'real'
-RUN = 'real'
+RUN = 'sim'
 
 # Set to False for speedup, skips sanity checks for in dataclasses
 DEBUG = False and __debug__
