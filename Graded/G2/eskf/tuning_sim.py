@@ -17,9 +17,9 @@ tuning_params_sim = ESKFTuningParams(
     )    
 
 x_nom_init_sim = NominalState(
-    np.array([0, 0, 0]),                        # Position
-    np.array([0, 0, 0]),                        # Velocity
-    RotationQuaterion.from_euler([0, 0, 0]),    # Orientation
+    np.array([0, 0, -5]),                        # Position
+    np.array([20, 0, 0]),                        # Velocity
+    RotationQuaterion.from_euler([0,0,0]),    # Orientation
     np.zeros(3),                                # Accelerometer bias
     np.zeros(3),                                # Gyro bias
     ts=0)

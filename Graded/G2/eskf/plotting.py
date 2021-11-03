@@ -58,7 +58,7 @@ def plot_state(x_nom_seq: Sequence[NominalState]):
 
 def plot_rms_values(times: Sequence[float], errors: Sequence['ndarray[15]']):
     fig, ax = plt.subplots(5, sharex=True, figsize=(6.4, 7))
-    fig.canvas.manager.set_window_title("RMS")
+    fig.canvas.manager.set_window_title("RMSE")
 
     rms_pos = rms.rms(errors[:, 0:3], 3)[:,0]
     rms_vel = rms.rms(errors[:, 3:6], 3)[:,0]
@@ -66,20 +66,73 @@ def plot_rms_values(times: Sequence[float], errors: Sequence['ndarray[15]']):
     rms_alpha = rms.rms(errors[:, 9:12], 3)[:,0]
     rms_omega = rms.rms(np.rad2deg(errors[:, 12:15]), 3)[:,0]
 
-    ax[0].plot(times, rms_pos, label=r"$\mathbf{\rho}$-RMS")
+    # Calculating rmse-values
+    rmse_pos = rms.rmse(errors[:, 0:3], np.zeros_like(errors[:, 0:3]))
+    rmse_vel = rms.rmse(errors[:, 3:6], np.zeros_like(errors[:, 6:9]))
+    rmse_ori = rms.rmse(np.rad2deg(errors[:, 6:9]), np.zeros_like(errors[:, 6:9]))
+    rmse_alpha = rms.rmse(errors[:, 9:12], np.zeros_like(errors[:, 9:12]))
+    rmse_omega = rms.rmse(np.rad2deg(errors[:, 12:15]), np.zeros_like(errors[:, 12:15]))
+
+    rmse_pos_arr = rmse_pos * (np.ones_like(errors[:, 0:3])[:,0])
+    rmse_vel_arr = rmse_vel * (np.ones_like(errors[:, 3:6])[:,0])
+    rmse_ori_arr = rmse_ori * (np.ones_like(errors[:, 6:9])[:,0])
+    rmse_alpha_arr = rmse_alpha * (np.ones_like(errors[:, 9:12])[:,0])
+    rmse_omega_arr = rmse_omega * (np.ones_like(errors[:, 12:15])[:,0])
+
+    # Calculating boundaries for rms
+    min_rms_pos, max_rms_pos = rms.boundary_val(rms_pos)
+    min_rms_vel, max_rms_vel = rms.boundary_val(rms_vel)
+    min_rms_ori, max_rms_ori = rms.boundary_val(rms_ori)
+    min_rms_alpha, max_rms_alpha = rms.boundary_val(rms_alpha)
+    min_rms_omega, max_rms_omega = rms.boundary_val(rms_omega)
+
+    # Bit hardcoded, but I am fucking tired. If this POS(e) work, I am done...
+    # It should be done via a for-loop however...
+    ax[0].plot(times, rms_pos, label=r"$\mathbf{\rho}$-RMSE(t)")
+    ax[0].plot(times, rmse_pos_arr, color='r', label=f"ARMSE = ${rmse_pos:2.2}$")
     ax[0].set_ylabel(r"$\mathbf{\delta \rho}$ [$m$]")
+    # ax[0].set_title(
+    #     f"ARMSE-value: {rmse_pos:2.2} "
+    #     f"Min RMS-value: {min_rms_pos:2.2} "
+    #     f"Max RMS-value: {max_rms_pos:2.2}"
+    # )
 
-    ax[1].plot(times, rms_vel, label=r"$\mathbf{v}$-RMS")
+    ax[1].plot(times, rms_vel, label=r"$\mathbf{v}$-RMSE(t)")
+    ax[1].plot(times, rmse_vel_arr, color='r', label=f"ARMSE = ${rmse_vel:2.2}$")
     ax[1].set_ylabel(r"$\mathbf{\delta v}$ [$m/s$]")
+    # ax[1].set_title(
+    #     f"ARMSE-value: {rmse_vel:2.2} "
+    #     f"Min RMS-value: {min_rms_vel:2.2} "
+    #     f"Max RMS-value: {max_rms_vel:2.2}"
+    # )
 
-    ax[2].plot(times, rms_ori, label=r"$\mathbf{\theta}$-RMS")
+
+    ax[2].plot(times, rms_ori, label=r"$\mathbf{\theta}$-RMS(t)")
+    ax[2].plot(times, rmse_ori_arr, color='r', label=f"ARMSE = ${rmse_ori:2.2}$")
     ax[2].set_ylabel(r"$\mathbf{\delta \Theta}$ [deg]")
+    # ax[2].set_title(
+    #     f"ARMSE-value: {rmse_ori:2.2} "
+    #     f"Min RMS-value: {min_rms_ori:2.2} "
+    #     f"Max RMS-value: {max_rms_ori:2.2}"
+    # )
 
-    ax[3].plot(times, rms_alpha, label=r"$\mathbf{\alpha}$-RMS")
+    ax[3].plot(times, rms_alpha, label=r"$\mathbf{\alpha}$-RMS(t)")
+    ax[3].plot(times, rmse_alpha_arr, color='r', label=f"ARMSE = ${rmse_alpha:2.2}$")
     ax[3].set_ylabel(r"$\mathbf{\delta a}_b$ [$m/s^2$]")
+    # ax[3].set_title(
+    #     f"ARMSE: {rmse_alpha:2.2} "
+    #     f"Min RMS-value: {min_rms_alpha:2.2} "
+    #     f"Max RMS-value: {max_rms_alpha:2.2}"
+    # )
 
-    ax[4].plot(times, rms_omega, label=r"$\mathbf{\omega}$-RMS")
+    ax[4].plot(times, rms_omega, label=r"$\mathbf{\omega}$-RMS(t)")
+    ax[4].plot(times, rmse_omega_arr, color='r', label=f"ARMSE = ${rmse_omega:2.2}$")
     ax[4].set_ylabel(r"$\mathbf{ \delta\omega}_b$ [deg$/s$]")
+    # ax[4].set_title(
+    #     f"ARMSE: {rmse_omega:2.2} "
+    #     f"Min RMS-value: {min_rms_omega:2.2} "
+    #     f"Max RMS-value: {max_rms_omega:2.2}"
+    # )
 
     ax[-1].set_xlabel("$t$ [$s$]")
 
@@ -96,42 +149,42 @@ def plot_errors(times: Sequence[float], errors: Sequence['ndarray[15]']):
     fig, ax = plt.subplots(5, sharex=True, figsize=(6.4, 7))
     fig.canvas.manager.set_window_title("Errors")
 
-    # Calculating rmse-values
-    rmse_pos = rms.rmse(errors[:, 0:3], np.zeros_like(errors[:, 0:3]))
-    rmse_vel = rms.rmse(errors[:, 3:6], np.zeros_like(errors[:, 6:9]))
-    rmse_ori = rms.rmse(np.rad2deg(errors[:, 6:9]), np.zeros_like(errors[:, 6:9]))
-    rmse_alpha = rms.rmse(errors[:, 9:12], np.zeros_like(errors[:, 9:12]))
-    rmse_omega = rms.rmse(np.rad2deg(errors[:, 12:15]), np.zeros_like(errors[:, 12:15]))
+    # Calculating rmse-values - does not make sence to include it in plot_errors
+    # rmse_pos = rms.rmse(errors[:, 0:3], np.zeros_like(errors[:, 0:3]))
+    # rmse_vel = rms.rmse(errors[:, 3:6], np.zeros_like(errors[:, 6:9]))
+    # rmse_ori = rms.rmse(np.rad2deg(errors[:, 6:9]), np.zeros_like(errors[:, 6:9]))
+    # rmse_alpha = rms.rmse(errors[:, 9:12], np.zeros_like(errors[:, 9:12]))
+    # rmse_omega = rms.rmse(np.rad2deg(errors[:, 12:15]), np.zeros_like(errors[:, 12:15]))
 
-    rmse_pos_arr = rmse_pos * (np.ones_like(errors[:, 0:3])[:,0])
-    rmse_vel_arr = rmse_vel * (np.ones_like(errors[:, 3:6])[:,0])
-    rmse_ori_arr = rmse_ori * (np.ones_like(errors[:, 6:9])[:,0])
-    rmse_alpha_arr = rmse_alpha * (np.ones_like(errors[:, 9:12])[:,0])
-    rmse_omega_arr = rmse_omega * (np.ones_like(errors[:, 12:15])[:,0])
+    # rmse_pos_arr = rmse_pos * (np.ones_like(errors[:, 0:3])[:,0])
+    # rmse_vel_arr = rmse_vel * (np.ones_like(errors[:, 3:6])[:,0])
+    # rmse_ori_arr = rmse_ori * (np.ones_like(errors[:, 6:9])[:,0])
+    # rmse_alpha_arr = rmse_alpha * (np.ones_like(errors[:, 9:12])[:,0])
+    # rmse_omega_arr = rmse_omega * (np.ones_like(errors[:, 12:15])[:,0])
 
     ax[0].plot(times, errors[:, :3],
                label=[f"${s}$" for s in "xyz"])
-    ax[0].plot(times, rmse_pos_arr, color='r', label="ARMSE")
+    # ax[0].plot(times, rmse_pos_arr, color='r', label="ARMSE")
     ax[0].set_ylabel(r"$\mathbf{\delta \rho}$ [$m$]")
 
     ax[1].plot(times, errors[:, 3:6],
                label=[f"${s}$" for s in "uvw"])
-    ax[1].plot(times, rmse_vel_arr, color='r', label="ARMSE")
+    # ax[1].plot(times, rmse_vel_arr, color='r', label="ARMSE")
     ax[1].set_ylabel(r"$\mathbf{\delta v}$ [$m/s$]")
 
     ax[2].plot(times, np.rad2deg(errors[:, 6:9]),
                label=[f"${s}$" for s in [r"\phi", r"\theta", r"\psi"]])
-    ax[2].plot(times, rmse_ori_arr, color='r', label="ARMSE")
+    # ax[2].plot(times, rmse_ori_arr, color='r', label="ARMSE")
     ax[2].set_ylabel(r"$\mathbf{\delta \Theta}$ [deg]")
 
     ax[3].plot(times, errors[:, 9:12],
                label=[f"${s}$" for s in "xyz"])
-    ax[3].plot(times, rmse_alpha_arr, color='r', label="ARMSE")
+    # ax[3].plot(times, rmse_alpha_arr, color='r', label="ARMSE")
     ax[3].set_ylabel(r"$\mathbf{\delta a}_b$ [$m/s^2$]")
 
     ax[4].plot(times, np.rad2deg(errors[:, 12:15]),
                label=[f"${s}$" for s in [r"\phi", r"\theta", r"\psi"]])
-    ax[4].plot(times, rmse_omega_arr, color='r', label="ARMSE")
+    # ax[4].plot(times, rmse_omega_arr, color='r', label="ARMSE")
     ax[4].set_ylabel(r"$\mathbf{ \delta\omega}_b$ [deg$/s$]")
 
     ax[-1].set_xlabel("$t$ [$s$]")
@@ -184,6 +237,9 @@ def plot_nis(times, NIS_xyz, NIS_xy, NIS_z, confidence=0.90):
 
         # Calculating and plotting ANIS
         ANIS_val = anxs.anXs(NIS)
+        ANIS_lower, ANIS_upper = anxs.anXs_bounds(confidence, n_total*nstates, n_total)
+        # ANIS_lower = ci_lower/n_total
+        # ANIS_upper = ci_upper/n_total
         ANIS = ANIS_val * np.ones_like(NIS)
 
         # Plot NIS
@@ -198,8 +254,8 @@ def plot_nis(times, NIS_xyz, NIS_xy, NIS_z, confidence=0.90):
             f" [{confidence:2.1%} conf])"
             "\n"
             f"ANIS = {ANIS_val:2.2} "
-            f"Lower-limit = {ci_lower:2.2} "
-            f"Upper-limit = {ci_upper:2.2} "
+            f"Lower bound = {ANIS_lower:2.2} "
+            f"Upper bound = {ANIS_upper:2.2} "
         )
 
         ax[i].set_yscale('log')
@@ -230,6 +286,9 @@ def plot_nees(times, pos, vel, avec, accm, gyro, confidence=0.90):
 
         # Calculating and plotting ANEES
         ANEES_val = anxs.anXs(NEES)
+        ANEES_lower, ANEES_upper = anxs.anXs_bounds(confidence, 3*n_total, n_total)
+        # ANEES_lower = ci_lower/n_total
+        # ANEES_upper = ci_upper/n_total
         ANEES = ANEES_val * np.ones_like(NEES)
 
         # Plot NEES
@@ -244,8 +303,8 @@ def plot_nees(times, pos, vel, avec, accm, gyro, confidence=0.90):
             f"[{confidence:2.1%} conf])"
             "\n"
             f"ANEES = {ANEES_val:2.2} "
-            f"Lower-limit = {ci_lower:2.2} "
-            f"Upper-limit = {ci_upper:2.2} "
+            f"Lower bound = {ANEES_lower:2.2} "
+            f"Upper bound = {ANEES_upper:2.2} "
         )
 
         ax[i].set_yscale('log')
