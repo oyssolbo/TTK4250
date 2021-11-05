@@ -3,6 +3,13 @@ from quaternion import RotationQuaterion
 from datatypes.eskf_params import ESKFTuningParams
 from datatypes.eskf_states import NominalState, ErrorStateGauss
 
+"""
+Warning: These values may not equate the values delivered in the report!
+
+There have been some experimentation afterwards, both in terms of variances and
+initial values
+"""
+
 tuning_params_sim = ESKFTuningParams(
     accm_std        = 0.01,
     accm_bias_std   = 0.0025,
