@@ -268,7 +268,6 @@ class EKFSLAM:
         # [x coordinates;
         #  y coordinates]
         zc = (m - (Rot @ self.sensor_offset)[:, None])
-        print(zc)
 
         # How tf should one use the predicted measurements??
         # (2, #measurements), predicted measurements, like
@@ -298,7 +297,7 @@ class EKFSLAM:
             inds = slice(ind, ind + 2)
 
             # Using in-place substitution for jac_z_cb
-            jac_z_cb[:,2] = -Rpihalf @ (delta_m[:, i])
+            jac_z_cb[:, 2] = -Rpihalf @ (delta_m[:, i])
             
             # zc_i = zc[:, i].reshape((-1, 2))
 
@@ -307,8 +306,8 @@ class EKFSLAM:
             # print(jac_z_cb)
             # print(zc[:,i].T)
 
-            Hx[inds] = zc[:, i].T / (np.linalg.norm(zc[:, i], 2)) @ jac_z_cb # zr[i] @ jac_z_cb #(np.linalg.norm(zc[:, i], 2)) @ jac_z_cb
-            Hx[inds] = zc[:, i].T @ Rpihalf.T / (np.linalg.norm(zc[:, i], 2)**2) @ jac_z_cb # (zr[i]**2) @ jac_z_cb # (np.linalg.norm(zc[:, i], 2)**2) @ jac_z_cb
+            Hx[inds] = zc[:, i].T / zr[i] @ jac_z_cb #(np.linalg.norm(zc[:, i], 2)) @ jac_z_cb
+            Hx[inds] = zc[:, i].T @ Rpihalf.T / (zr[i]**2) @ jac_z_cb # (np.linalg.norm(zc[:, i], 2)**2) @ jac_z_cb
 
             # Using eq. 11.16, one sees that Hm is identical to the first column in Hx, except negative
             Hm[inds, inds] = -Hx[inds, :2]
@@ -487,8 +486,8 @@ class EKFSLAM:
         Tuple[np.ndarray, np.ndarray, float, np.ndarray]
             [description]
         """
-        # etaupd, Pupd, NIS, a = solution.EKFSLAM.EKFSLAM.update(self, eta, P, z)
-        # return etaupd, Pupd, NIS, a
+        etaupd, Pupd, NIS, a = solution.EKFSLAM.EKFSLAM.update(self, eta, P, z)
+        return etaupd, Pupd, NIS, a
 
         numLmk = (eta.size - 3) // 2
         assert (len(eta) - 3) % 2 == 0, "EKFSLAM.update: landmark lenght not even"
@@ -501,11 +500,11 @@ class EKFSLAM:
             # Here you can use simply np.kron (a bit slow) to form the big (very big in VP after a while) R,
             # or be smart with indexing and broadcasting (3d indexing into 2d mat) realizing you are adding the same R on all diagonals
             # Using eq. 11.45
-            S = H @ P @ H.T + np.kron(np.eye(numLmk), self.R) # Find a more efficient way to implement this
+            # S = H @ P @ H.T + np.kron(np.eye(numLmk), self.R) # Find a more efficient way to implement this
             # Would something like this work, Chr?
-            # S = H @ P @ H.T 
-            # idxs = np.arange(numLmk * 2).reshape(numLmk, 2)
-            # S[idxs[..., None], idxs[:,None]] += self.R[None]
+            S = H @ P @ H.T 
+            indeces = np.arange(numLmk * 2).reshape(numLmk, 2)
+            S[indeces[..., None], indeces[:,None]] += self.R[None]
             assert (
                 S.shape == zpred.shape * 2
             ), "EKFSLAM.update: wrong shape on either S or zpred"
@@ -537,7 +536,7 @@ class EKFSLAM:
                 # Pupd = jo @ P @ jo.T + W @ self.R @ W.T # Kalman update using Joseph form. This is the main workload on VP after speedups
                 Pupd = jo @ P @ jo.T + W @ np.kron(np.eye(za.size // 2), self.R) @ W.T
 
-                # calculate NIS, can use S_cho_factors
+                # Calculate NIS, can use S_cho_factors
                 NIS = v.T @ la.cho_solve(S_cho_factors, v) #S_cho_factors @ v
 
                 # When tested, remove for speed
