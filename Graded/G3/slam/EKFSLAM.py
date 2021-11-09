@@ -36,6 +36,9 @@ class EKFSLAM:
         np.ndarray, shape = (3,)
             the predicted state
         """
+        xpred = solution.EKFSLAM.EKFSLAM.f(self, x, u)
+        return xpred
+
         # Extracting the variables. Assuming that x = [x, y, psi] and
         # u = [u, v, phi]
         x_prev = x[0]
@@ -53,7 +56,6 @@ class EKFSLAM:
 
         xpred = np.array([x_pred, y_pred, psi_pred])
 
-        # xpred = solution.EKFSLAM.EKFSLAM.f(self, x, u)
         return xpred
 
     def Fx(self, 
@@ -74,6 +76,9 @@ class EKFSLAM:
         np.ndarray
             The Jacobian of f wrt. x.
         """
+        Fx = solution.EKFSLAM.EKFSLAM.Fx(self, x, u)
+        return Fx
+
         # Using equation 11.13
         u_k = u[0]
         v_k = u[1]
@@ -86,7 +91,6 @@ class EKFSLAM:
         Fx[0][2] = Fx_13
         Fx[1][2] = Fx_23
 
-        # Fx = solution.EKFSLAM.EKFSLAM.Fx(self, x, u)
         return Fx
 
     def Fu(self, 
@@ -107,6 +111,9 @@ class EKFSLAM:
         np.ndarray
             The Jacobian of f wrt. u.
         """
+        Fu = solution.EKFSLAM.EKFSLAM.Fu(self, x, u)
+        return Fu
+
         # Using eq. 11.14
         # What is the point of having u as an input here??
         # It is not used in this equation, unless one would have to predict
@@ -119,7 +126,6 @@ class EKFSLAM:
         Fu[:2, :2] = rotmat
         Fu[2][2] = 1
 
-        # Fu = solution.EKFSLAM.EKFSLAM.Fu(self, x, u)
         return Fu
 
     def predict(
@@ -145,8 +151,8 @@ class EKFSLAM:
         Tuple[np.ndarray, np.ndarray], shapes= (3 + 2*#landmarks,), (3 + 2*#landmarks,)*2
             predicted mean and covariance of eta.
         """
-        # etapred, P = solution.EKFSLAM.EKFSLAM.predict(self, eta, P, z_odo)
-        # return etapred, P
+        etapred, P = solution.EKFSLAM.EKFSLAM.predict(self, eta, P, z_odo)
+        return etapred, P
 
         # Check input matrix
         assert np.allclose(P, P.T), "EKFSLAM.predict: not symmetric P input"
@@ -198,8 +204,8 @@ class EKFSLAM:
         np.ndarray, shape=(2 * #landmarks,)
             The landmarks in the sensor frame.
         """
-        # zpred = solution.EKFSLAM.EKFSLAM.h(self, eta)
-        # return zpred
+        zpred = solution.EKFSLAM.EKFSLAM.h(self, eta)
+        return zpred
 
         # Extract states and map
         x = eta[0:3]
@@ -248,8 +254,8 @@ class EKFSLAM:
         np.ndarray, shape=(2 * #landmarks, 3 + 2 * #landmarks)
             the jacobian of h wrt. eta.
         """
-        # H = solution.EKFSLAM.EKFSLAM.h_jac(self, eta)
-        # return H
+        H = solution.EKFSLAM.EKFSLAM.h_jac(self, eta)
+        return H
 
         # Extract states and map
         x = eta[0:3]
@@ -335,9 +341,9 @@ class EKFSLAM:
         Tuple[np.ndarray, np.ndarray], shapes=(3 + 2*(#landmarks + #newlandmarks,), (3 + 2*(#landmarks + #newlandmarks,)*2
             eta with new landmarks appended, and its covariance
         """
-        # etaadded, Padded = solution.EKFSLAM.EKFSLAM.add_landmarks(
-        #     self, eta, P, z)
-        # return etaadded, Padded
+        etaadded, Padded = solution.EKFSLAM.EKFSLAM.add_landmarks(
+            self, eta, P, z)
+        return etaadded, Padded
 
         n = P.shape[0]
         assert z.ndim == 1, "SLAM.add_landmarks: z must be a 1d array"
@@ -384,7 +390,7 @@ class EKFSLAM:
         # Append new landmarks to state vector
         # Couldn't this cause problems when the measurements are not unique, such that the measurements 
         # match some of the original measurements?
-        etaadded = np.concatenate((eta,lmnew)) # np.concatenate(eta.reshape((1, len(eta))), lmnew.reshape(1, len(lmnew))) # Just wtf Python!!!
+        etaadded = np.concatenate((eta, lmnew)) # np.concatenate(eta.reshape((1, len(eta))), lmnew.reshape(1, len(lmnew))) # Just wtf Python!!!
         # Block diagonal of P_new, see problem text in 1g) in graded assignment 3
         Padded = la.block_diag(P, Gx @ P[:3, :3] @ Gx.T + Rall)
         # Padded = np.block(
@@ -486,8 +492,8 @@ class EKFSLAM:
         Tuple[np.ndarray, np.ndarray, float, np.ndarray]
             [description]
         """
-        # etaupd, Pupd, NIS, a = solution.EKFSLAM.EKFSLAM.update(self, eta, P, z)
-        # return etaupd, Pupd, NIS, a
+        etaupd, Pupd, NIS, a = solution.EKFSLAM.EKFSLAM.update(self, eta, P, z)
+        return etaupd, Pupd, NIS, a
 
         numLmk = (eta.size - 3) // 2
         assert (len(eta) - 3) % 2 == 0, "EKFSLAM.update: landmark lenght not even"

@@ -80,7 +80,7 @@ def main():
     datafile = Path(__file__).parents[1].joinpath("data/simulatedSLAM")
     simSLAM_ws = loadmat(str(datafile))
 
-    # NB: this is a MATLAB cell, so needs to "double index" to get out the measurements of a time step k:
+    # NB: this is a MATLAB cell, so needs1 to "double index" to get out the measurements of a time step k:
     #
     # ex:
     #
@@ -97,11 +97,11 @@ def main():
     M = len(landmarks)
 
     # %% Tuning
-    Q = np.diag([0.1, 0.05, 1 * np.pi / 180]) ** 2
-    R = np.diag([0.1, 1 * np.pi / 180]) ** 2  
+    Q = np.diag([5, 5, 10 * np.pi / 180]) ** 2
+    R = np.diag([1, 1 * np.pi / 180]) ** 2  
 
     # First is for joint compatibility, second is individual
-    JCBBalphas = np.array([0.001, 0.0001]) 
+    JCBBalphas = np.array([0.1, 0.01]) 
 
     # Original values:
     # Q = np.diag([0.1, 0.1, 1 * np.pi / 180]) ** 2
