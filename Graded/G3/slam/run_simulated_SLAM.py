@@ -17,7 +17,7 @@ try:
     from tqdm import tqdm
 except ImportError as e:
     print(e)
-    print("install tqdm to have progress bar")
+    print("Install tqdm to have progress bar")
 
     # Def tqdm as dummy as it is not available
     def tqdm(*args, **kwargs):
@@ -27,9 +27,9 @@ except ImportError as e:
 
 
 # To see your plot config
-print(f"matplotlib backend: {matplotlib.get_backend()}")
-print(f"matplotlib config file: {matplotlib.matplotlib_fname()}")
-print(f"matplotlib config dir: {matplotlib.get_configdir()}")
+print(f"Matplotlib backend: {matplotlib.get_backend()}")
+print(f"Matplotlib config file: {matplotlib.matplotlib_fname()}")
+print(f"Matplotlib config dir: {matplotlib.get_configdir()}")
 plt.close("all")
 
 # Try to set separate window ploting
@@ -37,15 +37,15 @@ if "inline" in matplotlib.get_backend():
     print("Plotting is set to inline at the moment:", end=" ")
 
     if "ipykernel" in matplotlib.get_backend():
-        print("backend is ipykernel (IPython?)")
+        print("Backend is ipykernel (IPython?)")
         print("Trying to set backend to separate window:", end=" ")
         import IPython
 
         IPython.get_ipython().run_line_magic("matplotlib", "")
     else:
-        print("unknown inline backend")
+        print("Unknown inline backend")
 
-print("continuing with this plotting backend", end="\n\n\n")
+print("Continuing with this plotting backend", end="\n\n\n")
 
 
 # Set styles
@@ -57,7 +57,7 @@ try:
     print(f"pyplot using style set {plt_styles}")
 except Exception as e:
     print(e)
-    print("setting grid and only grid and legend manually")
+    print("Setting grid and only grid and legend manually")
     plt.rcParams.update(
         {
             # Setgrid
@@ -96,18 +96,24 @@ def main():
     K = len(z)
     M = len(landmarks)
 
-    # %% Initilize
-    Q = np.diag([0.1, 0.1, 1 * np.pi / 180]) ** 2  # TODO tune
-    R = np.diag([0.1, 1 * np.pi / 180]) ** 2  # TODO tune
+    # %% Tuning
+    Q = np.diag([0.1, 0.05, 1 * np.pi / 180]) ** 2
+    R = np.diag([0.1, 1 * np.pi / 180]) ** 2  
 
     # First is for joint compatibility, second is individual
-    JCBBalphas = np.array([0.001, 0.0001])  # TODO tune
+    JCBBalphas = np.array([0.001, 0.0001]) 
 
+    # Original values:
+    # Q = np.diag([0.1, 0.1, 1 * np.pi / 180]) ** 2
+    # R = np.diag([0.1, 1 * np.pi / 180]) ** 2
+    # JCBBalphas = np.array([0.001, 0.0001]) 
+
+    # %% Initialize    
     doAsso = True
 
 
-# These can have a large effect on runtime either through the number of landmarks created
-# or by the size of the association search space.
+    # These can have a large effect on runtime either through the number of landmarks created
+    # or by the size of the association search space.
 
     slam = EKFSLAM(Q, R, do_asso=doAsso, alphas=JCBBalphas)
 
@@ -135,14 +141,14 @@ def main():
     # Plotting
 
     doAssoPlot = False
-    playMovie = True
+    playMovie = False
     if doAssoPlot:
         figAsso, axAsso = plt.subplots(num=1, clear=True)
 
 # %% Run simulation
     N = K
 
-    print("starting sim (" + str(N) + " iterations)")
+    print("Starting sim (" + str(N) + " iterations)")
 
     for k, z_k in tqdm(enumerate(z[:N]), total=N):
         # See top: need to do "double indexing" to get z at time step k
@@ -156,14 +162,14 @@ def main():
 
         assert (
             eta_hat[k].shape[0] == P_hat[k].shape[0]
-        ), "dimensions of mean and covariance do not match"
+        ), "Dimensions of mean and covariance do not match"
 
         num_asso = np.count_nonzero(a[k] > -1)
 
         CI[k] = chi2.interval(alpha, 2 * num_asso)
 
         if num_asso > 0:
-            NISnorm[k] = NIS[k] / (2 * num_asso)
+            NISnorm[k] = NIS[k] / (2 * num_asso)#* len(eta_hat[k]))
             CInorm[k] = CI[k] / (2 * num_asso)
         else:
             NISnorm[k] = 1
@@ -221,7 +227,7 @@ def main():
     ax2.plot(*poseGT.T[:2], c="r", label="gt")
     ax2.plot(*pose_est.T[:2], c="g", label="est")
     ax2.plot(*ellipse(pose_est[-1, :2], P_hat[N - 1][:2, :2], 5, 200).T, c="g")
-    ax2.set(title="results", xlim=(mins[0], maxs[0]), ylim=(mins[1], maxs[1]))
+    ax2.set(title="Results", xlim=(mins[0], maxs[0]), ylim=(mins[1], maxs[1]))
     ax2.axis("equal")
     ax2.grid()
 
@@ -231,9 +237,9 @@ def main():
     insideCI = (CInorm[:N, 0] <= NISnorm[:N]) * (NISnorm[:N] <= CInorm[:N, 1])
 
     fig3, ax3 = plt.subplots(num=3, clear=True)
-    ax3.plot(CInorm[:N, 0] / num_asso, '--')
-    ax3.plot(CInorm[:N, 1] / num_asso, '--')
-    ax3.plot(NISnorm[:N] / num_asso, lw=0.5)
+    ax3.plot(CInorm[:N, 0], '--')
+    ax3.plot(CInorm[:N, 1], '--')
+    ax3.plot(NISnorm[:N], lw=0.5)
 
     ax3.set_title(f'NIS, {insideCI.mean()*100}% inside CI')
 
@@ -241,7 +247,7 @@ def main():
 
     fig4, ax4 = plt.subplots(nrows=3, ncols=1, figsize=(
         7, 5), num=4, clear=True, sharex=True)
-    tags = ['all', 'pos', 'heading']
+    tags = ['All', 'Pos', 'Heading']
     dfs = [3, 2, 1]
 
     for ax, tag, NEES, df in zip(ax4, tags, NEESes.T, dfs):
