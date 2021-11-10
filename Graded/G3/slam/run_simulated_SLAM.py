@@ -93,20 +93,22 @@ def main():
     odometry = simSLAM_ws["odometry"].T
     poseGT = simSLAM_ws["poseGT"].T
 
-    K = len(z)
+    K = 500 #len(z)
     M = len(landmarks)
 
     # %% Tuning
-    Q = np.diag([5, 5, 10 * np.pi / 180]) ** 2
-    R = np.diag([1, 1 * np.pi / 180]) ** 2  
+    # Q = np.diag([0.025, 0.05, 0.9 * np.pi / 180]) ** 2
+    # R = np.diag([0.2, 2 * np.pi / 180]) ** 2  
+    # JCBBalphas = np.array([0.001, 0.0000001]) 
 
-    # First is for joint compatibility, second is individual
-    JCBBalphas = np.array([0.1, 0.01]) 
+    Q = np.diag([1e-2, 1.5e-2, 1 * np.pi/180]) ** 2
+    R = np.diag([2e-2, 1 * np.pi/180]) ** 2  
+    JCBBalphas = np.array([1e-10, 1e-10]) 
 
     # Original values:
     # Q = np.diag([0.1, 0.1, 1 * np.pi / 180]) ** 2
-    # R = np.diag([0.1, 1 * np.pi / 180]) ** 2
-    # JCBBalphas = np.array([0.001, 0.0001]) 
+    # R = np.diag([1, 1 * np.pi / 180]) ** 2
+    # JCBBalphas = np.array([0.001, 0.0001])     # First is for joint compatibility, second is individual
 
     # %% Initialize    
     doAsso = True
@@ -167,6 +169,7 @@ def main():
         num_asso = np.count_nonzero(a[k] > -1)
 
         CI[k] = chi2.interval(alpha, 2 * num_asso)
+        # CI[k] = tuple(ti/len(eta_hat[k]) for ti in CI[k])
 
         if num_asso > 0:
             NISnorm[k] = NIS[k] / (2 * num_asso)#* len(eta_hat[k]))

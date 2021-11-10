@@ -539,8 +539,10 @@ class EKFSLAM:
                 jo = -W @ Ha
                 # Same as adding Identity mat
                 jo[np.diag_indices(jo.shape[0])] += 1
-                # Pupd = jo @ P @ jo.T + W @ self.R @ W.T # Kalman update using Joseph form. This is the main workload on VP after speedups
-                Pupd = jo @ P @ jo.T + W @ np.kron(np.eye(za.size // 2), self.R) @ W.T
+                # Kalman update using Joseph form. This is the main workload on VP after speedups
+                # Pupd = jo @ P @ jo.T + W @ self.R @ W.T # Incorrect adding of self.R. Must add uysing np.kron
+                dim = za.size // 2
+                Pupd = jo @ P @ jo.T + W @ np.kron(np.eye(dim), self.R) @ W.T
 
                 # Calculate NIS, can use S_cho_factors
                 NIS = v.T @ la.cho_solve(S_cho_factors, v) #S_cho_factors @ v
