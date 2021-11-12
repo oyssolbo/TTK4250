@@ -13,6 +13,8 @@ from scipy.stats import chi2
 import utils
 from pathlib import Path
 
+import anxs
+
 try:
     from tqdm import tqdm
 except ImportError as e:
@@ -93,17 +95,21 @@ def main():
     odometry = simSLAM_ws["odometry"].T
     poseGT = simSLAM_ws["poseGT"].T
 
-    K = 500 #len(z)
+    K = 200 #len(z)
     M = len(landmarks)
 
     # %% Tuning
-    # Q = np.diag([0.025, 0.05, 0.9 * np.pi / 180]) ** 2
-    # R = np.diag([0.2, 2 * np.pi / 180]) ** 2  
-    # JCBBalphas = np.array([0.001, 0.0000001]) 
+    # Q = np.diag([0.25, 0.25, 1 * np.pi / 180]) ** 2
+    # R = np.diag([0.1, 1 * np.pi / 180]) ** 2  
+    # JCBBalphas = np.array([1e-6, 1e-6]) 
 
-    Q = np.diag([1e-2, 1.5e-2, 1 * np.pi/180]) ** 2
-    R = np.diag([2e-2, 1 * np.pi/180]) ** 2  
-    JCBBalphas = np.array([1e-10, 1e-10]) 
+    Q = np.diag([0.1, 0.1, 5 * np.pi/180]) ** 2
+    R = np.diag([0.3, 15 * np.pi/180]) ** 2  
+    JCBBalphas = np.array([1e-8, 1e-8]) 
+
+    # Q = np.diag([1e-1, 1e-1, 5 * np.pi/180]) ** 2
+    # R = np.diag([3e-1, 15 * np.pi/180]) ** 2  
+    # JCBBalphas = np.array([1e-8, 1e-8]) 
 
     # Original values:
     # Q = np.diag([0.1, 0.1, 1 * np.pi / 180]) ** 2
@@ -152,6 +158,7 @@ def main():
 
     print("Starting sim (" + str(N) + " iterations)")
 
+    num_total_asso = 0  # Used for calculating ANIS
     for k, z_k in tqdm(enumerate(z[:N]), total=N):
         # See top: need to do "double indexing" to get z at time step k
         # Transpose is to stack measurements rowwise
@@ -167,8 +174,9 @@ def main():
         ), "Dimensions of mean and covariance do not match"
 
         num_asso = np.count_nonzero(a[k] > -1)
+        num_total_asso += num_asso
 
-        CI[k] = chi2.interval(alpha, 2 * num_asso)
+        CI[k] = chi2.interval(1 - alpha, 2 * num_asso)
         # CI[k] = tuple(ti/len(eta_hat[k]) for ti in CI[k])
 
         if num_asso > 0:
@@ -254,18 +262,33 @@ def main():
     dfs = [3, 2, 1]
 
     for ax, tag, NEES, df in zip(ax4, tags, NEESes.T, dfs):
-        CI_NEES = chi2.interval(alpha, df)
+        CI_NEES = chi2.interval(1 - alpha, df)
         ax.plot(np.full(N, CI_NEES[0]), '--')
         ax.plot(np.full(N, CI_NEES[1]), '--')
         ax.plot(NEES[:N], lw=0.5)
         insideCI = (CI_NEES[0] <= NEES) * (NEES <= CI_NEES[1])
         ax.set_title(f'NEES {tag}: {insideCI.mean()*100}% inside CI')
 
-        CI_ANEES = np.array(chi2.interval(alpha, df*N)) / N
+        CI_ANEES = np.array(chi2.interval(1 - alpha, df*N)) / N
         print(f"CI ANEES {tag}: {CI_ANEES}")
         print(f"ANEES {tag}: {NEES.mean()}")
+        print(f"Self-made ANEES for {tag}: {anxs.anXs(NEES)}")
 
     fig4.tight_layout()
+
+    # ANIS
+    # Calculated from forum-post, by using the total number of associations * 2 as the TDOF, with
+    # the total number of associations as a normalizing factor
+    ci = 1 - alpha
+    dof = 2 * num_total_asso
+    CI_ANIS = anxs.anXs_bounds(ci, dof, num_total_asso)
+    ANIS = anxs.anXs(NIS)
+
+    print(f"ANIS-lower confidence interval: {CI_ANIS[0]}")
+    print(f"ANIS-upper confidence interval: {CI_ANIS[1]}") 
+    print(f"ANIS: {ANIS}")
+
+    # ANEES
 
 # %% RMSE
 
@@ -288,6 +311,10 @@ def main():
         ax.grid()
 
     fig5.tight_layout()
+
+# %% Estimate error
+    # Currently no clue what they are after here. It does make sence to either estimate the standard
+    # error, or plot the error over time, however why wouldn't one just use RMSE for the latter?
 
 # %% Movie time
 
