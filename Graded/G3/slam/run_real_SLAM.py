@@ -89,7 +89,7 @@ def main():
 
     timeOdo = (realSLAM_ws["time"] / 1000).ravel()
     timeLsr = (realSLAM_ws["TLsr"] / 1000).ravel()
-    timeGps = (realSLAM_ws["timeGps"] / 1000).ravel()
+    timeGnss = (realSLAM_ws["timeGps"] / 1000).ravel()
 
     steering = realSLAM_ws["steering"].ravel()
     speed = realSLAM_ws["speed"].ravel()
@@ -101,7 +101,7 @@ def main():
 
     K = timeOdo.size
     mK = timeLsr.size
-    Kgps = timeGps.size
+    Kgnss = timeGnss.size
 
 # %% Parameters
 
@@ -112,7 +112,7 @@ def main():
 
     car = Car(L, H, a, b)
 
-    sigmas = 0.025 * np.array([0.018, 0.018, 0.45 * np.pi / 180])  
+    sigmas = np.array([0.018, 0.018, 0.45 * np.pi / 180])  
     CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
     Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
     R = np.diag([0.1, 0.9 * np.pi / 180]) ** 2  
@@ -121,11 +121,11 @@ def main():
     JCBBalphas = np.array([1e-5, 1e-5]) 
 
     # Original values
-    # sigmas = 0.025 * np.array([0.0001, 0.00005, 6 * np.pi / 180])  
-    # CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
-    # Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
-    # R = np.diag([0.1, 1 * np.pi / 180]) ** 2  
-    # JCBBalphas = np.array([0.00001, 1e-6])     
+    sigmas = 0.025 * np.array([0.0001, 0.00005, 6 * np.pi / 180])  
+    CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
+    Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
+    R = np.diag([0.1, 1 * np.pi / 180]) ** 2  
+    JCBBalphas = np.array([0.00001, 1e-6])     
 
     sensorOffset = np.array([car.a + car.L, car.b])
     doAsso = True
@@ -146,7 +146,7 @@ def main():
 
     # Initialize state
     # You might want to tweak these for a good reference
-    eta = np.array([Lo_m[0], La_m[1], 36 * np.pi / 180])
+    eta = np.array([Lo_m[0], La_m[0], 36 * np.pi / 180])
     P = np.zeros((3, 3))
 
     mk_first = 1  # First seems to be a bit off in timing
@@ -154,7 +154,7 @@ def main():
     t = timeOdo[0]
 
 # %%  Run
-    N = 5000  # K
+    N = 10000  # K
 
     doPlot = True
     lh_pose = None
@@ -272,24 +272,49 @@ def main():
     if do_raw_prediction:
         fig5, ax5 = plt.subplots(num=5, clear=True)
         ax5.scatter(
-            Lo_m[timeGps < timeOdo[N - 1]],
-            La_m[timeGps < timeOdo[N - 1]],
+            Lo_m[timeGnss < timeOdo[N - 1]],
+            La_m[timeGnss < timeOdo[N - 1]],
             c="r",
             marker=".",
-            label="GPS",
+            label="GNSS",
         )
-        ax5.plot(*odox[:N, :2].T, label="odom")
+        ax5.plot(*odox[:N, :2].T, label="Odom")
         ax5.grid()
-        ax5.set_title("GPS vs odometry integration")
+        ax5.set_title("GNSS vs odometry integration")
         ax5.legend()
+
+# %% Error in position vs GNSS over time
+    if do_raw_prediction:
+        # Must find an intelligent method of comparing the data-sets
+        # It is here important to only find the difference when the system is
+        # not in dead reckoning mode 
+
+        # Must let the difference be zero if dead-reckoning occurs, 
+        # or not plotted at all
+        long = Lo_m[timeGnss < timeOdo[N - 1]]
+        lat = La_m[timeGnss < timeOdo[N - 1]]
+
+        x_pos = eta[0]
+
+        pass
 
 # %% Plot
     fig6, ax6 = plt.subplots(num=6, clear=True)
-    ax6.scatter(*eta[3:].reshape(-1, 2).T, color="r", marker="x")
+    ax6.scatter(*eta[3:].reshape(-1, 2).T, color="r", marker="x", label="Trees")
+    # Include the GNSS-measurements if available for comparison
+    if do_raw_prediction:
+        ax6.scatter(
+            Lo_m[timeGnss < timeOdo[N - 1]],
+            La_m[timeGnss < timeOdo[N - 1]],
+            c="g",
+            marker=".",
+            label="GNSS",
+        )
     ax6.plot(*xupd[mk_first:mk, :2].T)
     ax6.set(
         title=f"Steps {k}, laser scans {mk-1}, landmarks {len(eta[3:])//2},\nmeasurements {z.shape[0]}, num new = {np.sum(a[mk] == -1)}"
     )
+    ax6.legend()
     plt.show()
 
 # %% Main
