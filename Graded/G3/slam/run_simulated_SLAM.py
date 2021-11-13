@@ -315,9 +315,6 @@ def main():
     # According to how I understood the response/answer on BB, they are looking for
     # a plot showing the positional error over time
 
-    # Remember that it is in both x and y, such that a plot must therefore take this into 
-    # consideration
-
     times = np.arange(K)
 
     pos_error_label = ylabels[0]
@@ -331,14 +328,6 @@ def main():
     ax6.set_xlabel("s")
     ax6.legend(loc="upper right")
     ax6.grid()
-
-    # for ax, err, tag, ylabel, scaling in zip(ax5, errs, tags[1:], ylabels, scalings):
-    #     ax.plot(err*scaling)
-    #     ax.set_title(
-    #         f"{tag}: RMSE {np.sqrt((err**2).mean())*scaling} {ylabel}")
-    #     ax.set_ylabel(f"[{ylabel}]")
-    #     ax.grid()
-
     fig6.tight_layout()
 
 # %% Movie time

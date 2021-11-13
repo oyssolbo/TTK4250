@@ -27,14 +27,14 @@ class EKFSLAM:
         Parameters
         ----------
         x : np.ndarray, shape=(3,)
-            the robot state
+            The robot state
         u : np.ndarray, shape=(3,)
-            the odometry
+            The odometry
 
         Returns
         -------
         np.ndarray, shape = (3,)
-            the predicted state
+            The predicted state
         """
         xpred = solution.EKFSLAM.EKFSLAM.f(self, x, u)
         return xpred
@@ -67,9 +67,9 @@ class EKFSLAM:
         Parameters
         ----------
         x : np.ndarray, shape=(3,)
-            the robot state
+            The robot state
         u : np.ndarray, shape=(3,)
-            the odometry
+            The odometry
 
         Returns
         -------
@@ -102,9 +102,9 @@ class EKFSLAM:
         Parameters
         ----------
         x : np.ndarray, shape=(3,)
-            the robot state
+            The robot state
         u : np.ndarray, shape=(3,)
-            the odometry
+            The odometry
 
         Returns
         -------
@@ -140,16 +140,16 @@ class EKFSLAM:
         Parameters
         ----------
         eta : np.ndarray, shape=(3 + 2*#landmarks,)
-            the robot state and map concatenated
+            The robot state and map concatenated
         P : np.ndarray, shape=(3 + 2*#landmarks,)*2
-            the covariance of eta
+            The covariance of eta
         z_odo : np.ndarray, shape=(3,)
-            the measured odometry
+            The measured odometry
 
         Returns
         -------
         Tuple[np.ndarray, np.ndarray], shapes= (3 + 2*#landmarks,), (3 + 2*#landmarks,)*2
-            predicted mean and covariance of eta.
+            Predicted mean and covariance of eta.
         """
         etapred, P = solution.EKFSLAM.EKFSLAM.predict(self, eta, P, z_odo)
         return etapred, P
@@ -221,10 +221,10 @@ class EKFSLAM:
 
         # Predicted measurements in cartesian coordinates, beware sensor offset for VP. But 
         # how to counteract the sensor offset? Isn't that accounted for in delta_m?
-        zpredcart = Rot @ delta_m #m + Rot.T @ delta_m # To get the measurments into world-frame
+        zpredcart = Rot @ delta_m # To get the measurments into world-frame
 
-        zpred_r = la.norm(delta_m, axis=0) #((zpredcart**2).sum(axis=0))**0.5
-        zpred_theta = np.arctan2(zpredcart[1], zpredcart[0]) # Something buggy here
+        zpred_r = la.norm(delta_m, axis=0) #((delta_m**2).sum(axis=0))**0.5
+        zpred_theta = np.arctan2(zpredcart[1], zpredcart[0]) 
         # The two arrays above stacked on top of each other vertically like
         # [ranges;
         #  bearings]
@@ -252,7 +252,7 @@ class EKFSLAM:
         Returns
         -------
         np.ndarray, shape=(2 * #landmarks, 3 + 2 * #landmarks)
-            the jacobian of h wrt. eta.
+            The jacobian of h wrt. eta.
         """
         H = solution.EKFSLAM.EKFSLAM.h_jac(self, eta)
         return H
@@ -330,16 +330,16 @@ class EKFSLAM:
         Parameters
         ----------
         eta : np.ndarray, shape=(3 + 2*#landmarks,)
-            the robot state and map concatenated
+            The robot state and map concatenated
         P : np.ndarray, shape=(3 + 2*#landmarks,)*2
-            the covariance of eta
+            The covariance of eta
         z : np.ndarray, shape(2 * #newlandmarks,)
             A set of measurements to create landmarks for
 
         Returns
         -------
         Tuple[np.ndarray, np.ndarray], shapes=(3 + 2*(#landmarks + #newlandmarks,), (3 + 2*(#landmarks + #newlandmarks,)*2
-            eta with new landmarks appended, and its covariance
+            Eta with new landmarks appended, and its covariance
         """
         etaadded, Padded = solution.EKFSLAM.EKFSLAM.add_landmarks(
             self, eta, P, z)

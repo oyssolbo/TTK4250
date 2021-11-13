@@ -7,7 +7,7 @@ try:
     from tqdm import tqdm
 except ImportError as e:
     print(e)
-    print("install tqdm for progress bar")
+    print("Install tqdm for progress bar")
 
     # def tqdm as dummy
     def tqdm(*args, **kwargs):
@@ -23,13 +23,15 @@ from plotting import ellipse
 from vp_utils import detectTrees, odometry, Car
 from utils import rotmat2d
 
+import anxs
+
 # %% plot config check and style setup
 
 
 # to see your plot config
-print(f"matplotlib backend: {matplotlib.get_backend()}")
-print(f"matplotlib config file: {matplotlib.matplotlib_fname()}")
-print(f"matplotlib config dir: {matplotlib.get_configdir()}")
+print(f"Matplotlib backend: {matplotlib.get_backend()}")
+print(f"Matplotlib config file: {matplotlib.matplotlib_fname()}")
+print(f"Matplotlib config dir: {matplotlib.get_configdir()}")
 plt.close("all")
 
 # try to set separate window ploting
@@ -37,30 +39,30 @@ if "inline" in matplotlib.get_backend():
     print("Plotting is set to inline at the moment:", end=" ")
 
     if "ipykernel" in matplotlib.get_backend():
-        print("backend is ipykernel (IPython?)")
+        print("Backend is ipykernel (IPython?)")
         print("Trying to set backend to separate window:", end=" ")
         import IPython
 
         IPython.get_ipython().run_line_magic("matplotlib", "")
     else:
-        print("unknown inline backend")
+        print("Unknown inline backend")
 
-print("continuing with this plotting backend", end="\n\n\n")
+print("Continuing with this plotting backend", end="\n\n\n")
 
 
-# set styles
+# Set styles
 try:
-    # installed with "pip install SciencePLots" (https://github.com/garrettj403/SciencePlots.git)
-    # gives quite nice plots
+    # Installed with "pip install SciencePLots" (https://github.com/garrettj403/SciencePlots.git)
+    # Gives quite nice plots
     plt_styles = ["science", "grid", "bright", "no-latex"]
     plt.style.use(plt_styles)
-    print(f"pyplot using style set {plt_styles}")
+    print(f"Oyplot using style set {plt_styles}")
 except Exception as e:
     print(e)
-    print("setting grid and only grid and legend manually")
+    print("Setting grid and only grid and legend manually")
     plt.rcParams.update(
         {
-            # setgrid
+            # Setgrid
             "axes.grid": True,
             "grid.linestyle": ":",
             "grid.color": "k",
@@ -76,7 +78,7 @@ except Exception as e:
 
 
 def main():
-    # %% Load data
+# %% Load data
     victoria_park_foler = Path(
         __file__).parents[1].joinpath("data/victoria_park")
     realSLAM_ws = {
@@ -101,22 +103,29 @@ def main():
     mK = timeLsr.size
     Kgps = timeGps.size
 
-    # %% Parameters
+# %% Parameters
 
-    L = 2.83  # axel distance
-    H = 0.76  # center to wheel encoder
-    a = 0.95  # laser distance in front of first axel
-    b = 0.5  # laser distance to the left of center
+    L = 2.83  # Axel distance
+    H = 0.76  # Center to wheel encoder
+    a = 0.95  # Laser distance in front of first axel
+    b = 0.5  # Laser distance to the left of center
 
     car = Car(L, H, a, b)
 
-    sigmas = 0.025 * np.array([0.0001, 0.00005, 6 * np.pi / 180])  # TODO tune
+    sigmas = 0.025 * np.array([0.018, 0.018, 0.45 * np.pi / 180])  
     CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
     Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
-    R = np.diag([0.1, 1 * np.pi / 180]) ** 2  # TODO tune
+    R = np.diag([0.1, 0.9 * np.pi / 180]) ** 2  
 
-    # first is for joint compatibility, second is individual
-    JCBBalphas = np.array([0.00001, 1e-6])  # TODO tune
+    # First is for joint compatibility, second is individual
+    JCBBalphas = np.array([1e-5, 1e-5]) 
+
+    # Original values
+    # sigmas = 0.025 * np.array([0.0001, 0.00005, 6 * np.pi / 180])  
+    # CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
+    # Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
+    # R = np.diag([0.1, 1 * np.pi / 180]) ** 2  
+    # JCBBalphas = np.array([0.00001, 1e-6])     
 
     sensorOffset = np.array([car.a + car.L, car.b])
     doAsso = True
@@ -136,19 +145,18 @@ def main():
     CInorm = np.zeros((mK, 2))
 
     # Initialize state
-    # you might want to tweak these for a good reference
+    # You might want to tweak these for a good reference
     eta = np.array([Lo_m[0], La_m[1], 36 * np.pi / 180])
     P = np.zeros((3, 3))
 
-    mk_first = 1  # first seems to be a bit off in timing
+    mk_first = 1  # First seems to be a bit off in timing
     mk = mk_first
     t = timeOdo[0]
 
-    # %%  run
-    N = 1000  # K
+# %%  Run
+    N = 5000  # K
 
-    doPlot = False
-
+    doPlot = True
     lh_pose = None
 
     if doPlot:
@@ -168,6 +176,7 @@ def main():
             odos[k + 1] = odometry(speed[k + 1], steering[k + 1], 0.025, car)
             odox[k + 1], _ = slam.predict(odox[k], P, odos[k + 1])
 
+    num_total_asso = 0
     for k in tqdm(range(N)):
         if mk < mK - 1 and timeLsr[mk] <= timeOdo[k + 1]:
             # Force P to symmetric: there are issues with long runs (>10000 steps)
@@ -176,16 +185,16 @@ def main():
             # TODO: remove this for short debug runs in order to see if there are small errors
             P = (P + P.T) / 2
             dt = timeLsr[mk] - t
-            if dt < 0:  # avoid assertions as they can be optimized avay?
-                raise ValueError("negative time increment")
+            if dt < 0:  # Avoid assertions as they can be optimized away?
+                raise ValueError("Negative time increment")
 
-            # ? reset time to this laser time for next post predict
+            # Reset time to this laser time for next post predict
             t = timeLsr[mk]
             odo = odometry(speed[k + 1], steering[k + 1], dt, car)
-            eta, P =  # TODO predict
+            eta, P = slam.predict(eta, P, odo)
 
             z = detectTrees(LASER[mk])
-            eta, P, NIS[mk], a[mk] =  # TODO update
+            eta, P, NIS[mk], a[mk] = slam.update(eta, P, z)  
 
             num_asso = np.count_nonzero(a[mk] > -1)
 
@@ -194,6 +203,7 @@ def main():
                 CInorm[mk] = np.array(chi2.interval(confidence_prob, 2 * num_asso)) / (
                     2 * num_asso
                 )
+                num_total_asso += num_asso
             else:
                 NISnorm[mk] = 1
                 CInorm[mk].fill(1)
@@ -231,7 +241,7 @@ def main():
             odo = odometry(speed[k + 1], steering[k + 1], dt, car)
             eta, P = slam.predict(eta, P, odo)
 
-    # %% Consistency
+# %% Consistency
 
     # NIS
     insideCI = (CInorm[:mk, 0] <= NISnorm[:mk]) * \
@@ -244,7 +254,20 @@ def main():
 
     ax3.set_title(f"NIS, {insideCI.mean()*100:.2f}% inside CI")
 
-    # %% slam
+    # ANIS
+    # Calculated from forum-post, by using the total number of associations * 2 as the TDOF, with
+    # the total number of associations as a normalizing factor
+    if num_total_asso > 0:
+        ci = 1 - alpha
+        dof = 2 * num_total_asso
+        CI_ANIS = anxs.anXs_bounds(ci, dof, num_total_asso)
+        ANIS = anxs.anXs(NIS)
+
+        print(f"ANIS-lower confidence interval: {CI_ANIS[0]}")
+        print(f"ANIS-upper confidence interval: {CI_ANIS[1]}") 
+        print(f"ANIS: {ANIS}")
+
+# %% Slam
 
     if do_raw_prediction:
         fig5, ax5 = plt.subplots(num=5, clear=True)
@@ -260,7 +283,7 @@ def main():
         ax5.set_title("GPS vs odometry integration")
         ax5.legend()
 
-    # %%
+# %% Plot
     fig6, ax6 = plt.subplots(num=6, clear=True)
     ax6.scatter(*eta[3:].reshape(-1, 2).T, color="r", marker="x")
     ax6.plot(*xupd[mk_first:mk, :2].T)
@@ -269,6 +292,7 @@ def main():
     )
     plt.show()
 
+# %% Main
 
 if __name__ == "__main__":
     main()
