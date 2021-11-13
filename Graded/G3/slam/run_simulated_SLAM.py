@@ -272,7 +272,7 @@ def main():
         CI_ANEES = np.array(chi2.interval(1 - alpha, df*N)) / N
         print(f"CI ANEES {tag}: {CI_ANEES}")
         print(f"ANEES {tag}: {NEES.mean()}")
-        print(f"Self-made ANEES for {tag}: {anxs.anXs(NEES)}")
+        # print(f"Self-made ANEES for {tag}: {anxs.anXs(NEES)}") # For testing -- they are equal!!
 
     fig4.tight_layout()
 
@@ -288,8 +288,6 @@ def main():
     print(f"ANIS-upper confidence interval: {CI_ANIS[1]}") 
     print(f"ANIS: {ANIS}")
 
-    # ANEES
-
 # %% RMSE
 
     ylabels = ['m', 'deg']
@@ -298,10 +296,11 @@ def main():
     fig5, ax5 = plt.subplots(nrows=2, ncols=1, figsize=(
         7, 5), num=5, clear=True, sharex=True)
 
-    pos_err = np.linalg.norm(pose_est[:N, :2] - poseGT[:N, :2], axis=1)
+    pos_error = pose_est[:N, :2] - poseGT[:N, :2]
+    pos_err_norm = np.linalg.norm(pos_error, axis=1)
     heading_err = np.abs(utils.wrapToPi(pose_est[:N, 2] - poseGT[:N, 2]))
 
-    errs = np.vstack((pos_err, heading_err))
+    errs = np.vstack((pos_err_norm, heading_err))
 
     for ax, err, tag, ylabel, scaling in zip(ax5, errs, tags[1:], ylabels, scalings):
         ax.plot(err*scaling)
@@ -312,9 +311,35 @@ def main():
 
     fig5.tight_layout()
 
-# %% Estimate error
-    # Currently no clue what they are after here. It does make sence to either estimate the standard
-    # error, or plot the error over time, however why wouldn't one just use RMSE for the latter?
+# %% Position error
+    # According to how I understood the response/answer on BB, they are looking for
+    # a plot showing the positional error over time
+
+    # Remember that it is in both x and y, such that a plot must therefore take this into 
+    # consideration
+
+    times = np.arange(K)
+
+    pos_error_label = ylabels[0]
+    pos_error_scale = scalings[0]
+
+    fig6, ax6 = plt.subplots(nrows=1, ncols=1, figsize=(7, 5), num=6, clear=True, sharex=True)
+
+    ax6.plot(times, pos_error, label=[f"${s}$" for s in "xy"])
+    ax6.set_title(f"{tags[1]}-error [{pos_error_label}]")
+    ax6.set_ylabel(r"$\mathbf{\delta \rho}$ [$m$]")
+    ax6.set_xlabel("s")
+    ax6.legend(loc="upper right")
+    ax6.grid()
+
+    # for ax, err, tag, ylabel, scaling in zip(ax5, errs, tags[1:], ylabels, scalings):
+    #     ax.plot(err*scaling)
+    #     ax.set_title(
+    #         f"{tag}: RMSE {np.sqrt((err**2).mean())*scaling} {ylabel}")
+    #     ax.set_ylabel(f"[{ylabel}]")
+    #     ax.grid()
+
+    fig6.tight_layout()
 
 # %% Movie time
 
