@@ -24,6 +24,7 @@ from vp_utils import detectTrees, odometry, Car
 from utils import rotmat2d
 
 import anxs
+import utils
 
 # %% plot config check and style setup
 
@@ -112,20 +113,20 @@ def main():
 
     car = Car(L, H, a, b)
 
-    sigmas = np.array([0.018, 0.018, 0.45 * np.pi / 180])  
-    CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
-    Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
-    R = np.diag([0.1, 0.9 * np.pi / 180]) ** 2  
+    # sigmas = np.array([0.018, 0.018, 0.45 * np.pi / 180])  
+    # CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
+    # Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
+    # R = np.diag([0.1, 0.9 * np.pi / 180]) ** 2  
 
-    # First is for joint compatibility, second is individual
-    JCBBalphas = np.array([1e-5, 1e-5]) 
+    # # First is for joint compatibility, second is individual
+    # JCBBalphas = np.array([1e-5, 1e-5]) 
 
     # Original values
-    sigmas = 0.025 * np.array([0.0001, 0.00005, 6 * np.pi / 180])  
+    sigmas = np.array([0.00001, 0.0000005, 0.1 * np.pi / 180])  
     CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
     Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
-    R = np.diag([0.1, 1 * np.pi / 180]) ** 2  
-    JCBBalphas = np.array([0.00001, 1e-6])     
+    R = np.diag([1, 1 * np.pi / 180]) ** 2  
+    JCBBalphas = np.array([1e-5, 1e-5])     
 
     sensorOffset = np.array([car.a + car.L, car.b])
     doAsso = True
@@ -152,11 +153,18 @@ def main():
     mk_first = 1  # First seems to be a bit off in timing
     mk = mk_first
     t = timeOdo[0]
+    k_gnss = 0
+
+    # Used for calculating the error between the current pos and the gnss
+    pos_err = np.empty((0, 2), np.float64)
+
 
 # %%  Run
-    N = 10000  # K
+    N = 5000  # K
 
-    doPlot = True
+    err_times = np.zeros((N))
+
+    doPlot = False
     lh_pose = None
 
     if doPlot:
@@ -181,8 +189,7 @@ def main():
         if mk < mK - 1 and timeLsr[mk] <= timeOdo[k + 1]:
             # Force P to symmetric: there are issues with long runs (>10000 steps)
             # seem like the prediction might be introducing some minor asymetries,
-            # so best to force P symetric before update (where chol etc. is used).
-            # TODO: remove this for short debug runs in order to see if there are small errors
+            # so best to force P symetric before update
             P = (P + P.T) / 2
             dt = timeLsr[mk] - t
             if dt < 0:  # Avoid assertions as they can be optimized away?
@@ -233,6 +240,14 @@ def main():
                 plt.draw()
                 plt.pause(0.00001)
 
+            if timeGnss[k_gnss] <= timeLsr[mk + 1] and k_gnss < Kgnss:
+                # Comparing position to GNSS-measurement 
+                gnss_measurement = np.array([Lo_m[k_gnss], La_m[k_gnss]])
+                temp = gnss_measurement - xupd[mk, :2]
+                pos_err = np.append(pos_err, (gnss_measurement - xupd[mk, :2]).reshape(1, 2), axis=0)
+                err_times[k] = mk
+                k_gnss += 1
+
             mk += 1
 
         if k < K - 1:
@@ -247,7 +262,7 @@ def main():
     insideCI = (CInorm[:mk, 0] <= NISnorm[:mk]) * \
         (NISnorm[:mk] <= CInorm[:mk, 1])
 
-    fig3, ax3 = plt.subplots(num=3, clear=True)
+    _, ax3 = plt.subplots(num=3, clear=True)
     ax3.plot(CInorm[:mk, 0], "--")
     ax3.plot(CInorm[:mk, 1], "--")
     ax3.plot(NISnorm[:mk], lw=0.5)
@@ -270,7 +285,7 @@ def main():
 # %% Slam
 
     if do_raw_prediction:
-        fig5, ax5 = plt.subplots(num=5, clear=True)
+        _, ax5 = plt.subplots(num=5, clear=True)
         ax5.scatter(
             Lo_m[timeGnss < timeOdo[N - 1]],
             La_m[timeGnss < timeOdo[N - 1]],
@@ -285,36 +300,46 @@ def main():
 
 # %% Error in position vs GNSS over time
     if do_raw_prediction:
-        # Must find an intelligent method of comparing the data-sets
-        # It is here important to only find the difference when the system is
-        # not in dead reckoning mode 
+        fig6, ax6 = plt.subplots(nrows=3, ncols=1, figsize=(7, 5), num=5, clear=True, sharex=True)
 
-        # Must let the difference be zero if dead-reckoning occurs, 
-        # or not plotted at all
-        long = Lo_m[timeGnss < timeOdo[N - 1]]
-        lat = La_m[timeGnss < timeOdo[N - 1]]
+        times = [i for i in err_times if i > 0]
+        e_pos_x = pos_err[:,0]
+        e_pos_y = pos_err[:,1]
+        e_pos = np.stack([e_pos_x.T, e_pos_y.T])
+        pos_err_norm = np.linalg.norm(e_pos, axis=0)
 
-        x_pos = eta[0]
+        fig6.suptitle('Difference between estimated position and GNSS')
 
-        pass
+        # Plot the x and y errors as a function of time
+        ax6[0].scatter(times, pos_err[:,0], s=1, label="x")
+        ax6[1].scatter(times, pos_err[:,1], s=1, label="y")
+        ax6[2].scatter(times, pos_err_norm, s=1)#scatter(np.array([i for i in range(len(pos_err_norm))]), np.sqrt((pos_err_norm**2).mean()), label="y")
 
-# %% Plot
-    fig6, ax6 = plt.subplots(num=6, clear=True)
-    ax6.scatter(*eta[3:].reshape(-1, 2).T, color="r", marker="x", label="Trees")
+        ax6[0].set_title(r"$\mathbf{\delta}x$ [$m$]")
+        ax6[1].set_title(r"$\mathbf{\delta}y$ [$m$]")
+        ax6[2].set_title("RMSE")
+
+        # for i in range(3):
+        #     ax6[i].legend(loc="upper right")
+        fig6.tight_layout()
+
+# %% Plot summary
+    _, ax7 = plt.subplots(num=6, clear=True)
+    ax7.scatter(*eta[3:].reshape(-1, 2).T, color="r", marker="x", label="Trees")
     # Include the GNSS-measurements if available for comparison
     if do_raw_prediction:
-        ax6.scatter(
+        ax7.scatter(
             Lo_m[timeGnss < timeOdo[N - 1]],
             La_m[timeGnss < timeOdo[N - 1]],
             c="g",
             marker=".",
             label="GNSS",
         )
-    ax6.plot(*xupd[mk_first:mk, :2].T)
-    ax6.set(
+    ax7.plot(*xupd[mk_first:mk, :2].T)
+    ax7.set(
         title=f"Steps {k}, laser scans {mk-1}, landmarks {len(eta[3:])//2},\nmeasurements {z.shape[0]}, num new = {np.sum(a[mk] == -1)}"
     )
-    ax6.legend()
+    ax7.legend()
     plt.show()
 
 # %% Main
