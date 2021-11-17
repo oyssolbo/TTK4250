@@ -122,10 +122,11 @@ def main():
     # JCBBalphas = np.array([1e-5, 1e-5]) 
 
     # Original values
-    sigmas = np.array([0.00001, 0.0000005, 0.1 * np.pi / 180])  
+    # 0.018 & 0.018 & 0.45 & 0.1 & 0.9 & 1e-5 & 1e-5
+    sigmas = np.array([1e-5, 1e-5, 1e-4 * np.pi / 180])  
     CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
     Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
-    R = np.diag([1, 1 * np.pi / 180]) ** 2  
+    R = np.diag([2.5, 2.5 * np.pi / 180]) ** 2  
     JCBBalphas = np.array([1e-5, 1e-5])     
 
     sensorOffset = np.array([car.a + car.L, car.b])
@@ -178,11 +179,12 @@ def main():
     if do_raw_prediction:
         odos = np.zeros((K, 3))
         odox = np.zeros((K, 3))
+        
         odox[0] = eta
-
+        P_odo = P.copy()
         for k in range(min(N, K - 1)):
             odos[k + 1] = odometry(speed[k + 1], steering[k + 1], 0.025, car)
-            odox[k + 1], _ = slam.predict(odox[k], P, odos[k + 1])
+            odox[k + 1], _ = slam.predict(odox[k], P_odo, odos[k + 1])
 
     num_total_asso = 0
     for k in tqdm(range(N)):

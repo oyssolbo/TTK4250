@@ -95,17 +95,16 @@ def main():
     odometry = simSLAM_ws["odometry"].T
     poseGT = simSLAM_ws["poseGT"].T
 
-    K = 200 #len(z)
+    K = 350 #len(z)
     M = len(landmarks)
 
     # %% Tuning
     # Q = np.diag([0.25, 0.25, 1 * np.pi / 180]) ** 2
     # R = np.diag([0.1, 1 * np.pi / 180]) ** 2  
     # JCBBalphas = np.array([1e-6, 1e-6]) 
-
-    Q = np.diag([0.1, 0.1, 5 * np.pi/180]) ** 2
-    R = np.diag([0.3, 15 * np.pi/180]) ** 2  
-    JCBBalphas = np.array([1e-8, 1e-8]) 
+    Q = np.diag([0.03, 0.03, 1 * np.pi/180]) ** 2
+    R = np.diag([1e-3, 1e-3 * np.pi/180]) ** 2  
+    JCBBalphas = np.array([1e-8, 1e-3]) 
 
     # Q = np.diag([1e-1, 1e-1, 5 * np.pi/180]) ** 2
     # R = np.diag([3e-1, 15 * np.pi/180]) ** 2  
