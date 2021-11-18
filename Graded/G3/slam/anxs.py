@@ -3,7 +3,12 @@ from numpy import ndarray
 
 from scipy.stats import chi2
 
-def anXs(nXs: 'ndarray[2]')->float:
+def anis(
+        nis: 'ndarray[2]', 
+        dof: int)->float:
+    return nis.sum() / dof
+
+def anees(nXs: 'ndarray[2]')->float:
     assert len(nXs) > 0
     return np.sum(np.ravel(nXs)) / (float((np.ravel(nXs)).size))
 

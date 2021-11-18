@@ -113,21 +113,37 @@ def main():
 
     car = Car(L, H, a, b)
 
+    # %% Tuning
+    # Run 1 
     # sigmas = np.array([0.018, 0.018, 0.45 * np.pi / 180])  
     # CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
     # Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
     # R = np.diag([0.1, 0.9 * np.pi / 180]) ** 2  
-
-    # # First is for joint compatibility, second is individual
     # JCBBalphas = np.array([1e-5, 1e-5]) 
 
-    # Original values
-    # 0.018 & 0.018 & 0.45 & 0.1 & 0.9 & 1e-5 & 1e-5
+    # Run 2.1
+    # 83% inside NIS
+    # sigmas = np.array([1e-4, 1.25e-5, 0.4 * np.pi / 180]) 
+    # CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
+    # Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
+    # R = np.diag([0.03, 0.75 * np.pi / 180]) ** 2  
+    # JCBBalphas = np.array([1e-2, 1e-2]) 
+    
+    # Run 2.2
+    # 75% inside NIS
+    # sigmas = np.array([1e-2, 1.25e-2, 0.5 * np.pi / 180])  
+    # CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
+    # Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
+    # R = np.diag([0.04, 0.5 * np.pi / 180]) ** 2 
+    # JCBBalphas = np.array([1e-4, 1e-4]) 
+
+
+    # Run 3
     sigmas = np.array([1e-5, 1e-5, 1e-4 * np.pi / 180])  
     CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
     Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
     R = np.diag([2.5, 2.5 * np.pi / 180]) ** 2  
-    JCBBalphas = np.array([1e-5, 1e-5])     
+    JCBBalphas = np.array([1e-5, 1e-5]) 
 
     sensorOffset = np.array([car.a + car.L, car.b])
     doAsso = True
@@ -278,7 +294,7 @@ def main():
         ci = 1 - alpha
         dof = 2 * num_total_asso
         CI_ANIS = anxs.anXs_bounds(ci, dof, num_total_asso)
-        ANIS = anxs.anXs(NIS)
+        ANIS = anxs.anis(NIS, dof)
 
         print(f"ANIS-lower confidence interval: {CI_ANIS[0]}")
         print(f"ANIS-upper confidence interval: {CI_ANIS[1]}") 

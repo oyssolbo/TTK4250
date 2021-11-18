@@ -95,33 +95,27 @@ def main():
     odometry = simSLAM_ws["odometry"].T
     poseGT = simSLAM_ws["poseGT"].T
 
-    K = 350 #len(z)
+    K = 1000 #len(z)
     M = len(landmarks)
 
     # %% Tuning
-    # Q = np.diag([0.25, 0.25, 1 * np.pi / 180]) ** 2
-    # R = np.diag([0.1, 1 * np.pi / 180]) ** 2  
-    # JCBBalphas = np.array([1e-6, 1e-6]) 
-    Q = np.diag([0.03, 0.03, 1 * np.pi/180]) ** 2
-    R = np.diag([1e-3, 1e-3 * np.pi/180]) ** 2  
-    JCBBalphas = np.array([1e-8, 1e-3]) 
+    # Run 1 
+    Q = np.diag([0.1, 0.1, 5.0 * np.pi / 180]) ** 2
+    R = np.diag([0.3, 15.0 * np.pi / 180]) ** 2  
+    JCBBalphas = np.array([1e-8, 1e-8]) 
 
-    # Q = np.diag([1e-1, 1e-1, 5 * np.pi/180]) ** 2
-    # R = np.diag([3e-1, 15 * np.pi/180]) ** 2  
-    # JCBBalphas = np.array([1e-8, 1e-8]) 
+    # Run 2
+    # Q = np.diag([0.018, 0.018, 0.45 * np.pi/180]) ** 2
+    # R = np.diag([0.1, 0.9 * np.pi/180]) ** 2  
+    # JCBBalphas = np.array([1e-5, 1e-5]) 
 
-    # Original values:
-    # Q = np.diag([0.1, 0.1, 1 * np.pi / 180]) ** 2
-    # R = np.diag([1, 1 * np.pi / 180]) ** 2
-    # JCBBalphas = np.array([0.001, 0.0001])     # First is for joint compatibility, second is individual
+    # Run 3
+    # Q = np.diag([0.03, 0.03, 1 * np.pi/180]) ** 2
+    # R = np.diag([1e-3, 1e-3 * np.pi/180]) ** 2  
+    # JCBBalphas = np.array([1e-8, 1e-3]) 
 
     # %% Initialize    
     doAsso = True
-
-
-    # These can have a large effect on runtime either through the number of landmarks created
-    # or by the size of the association search space.
-
     slam = EKFSLAM(Q, R, do_asso=doAsso, alphas=JCBBalphas)
 
     # Allocate
@@ -281,7 +275,7 @@ def main():
     ci = 1 - alpha
     dof = 2 * num_total_asso
     CI_ANIS = anxs.anXs_bounds(ci, dof, num_total_asso)
-    ANIS = anxs.anXs(NIS)
+    ANIS = anxs.anis(NIS, dof)
 
     print(f"ANIS-lower confidence interval: {CI_ANIS[0]}")
     print(f"ANIS-upper confidence interval: {CI_ANIS[1]}") 
