@@ -121,29 +121,19 @@ def main():
     # R = np.diag([0.1, 0.9 * np.pi / 180]) ** 2  
     # JCBBalphas = np.array([1e-5, 1e-5]) 
 
-    # Run 2.1
-    # 83% inside NIS
-    # sigmas = np.array([1e-4, 1.25e-5, 0.4 * np.pi / 180]) 
+    # Run 2
+    # sigmas = np.array([1e-5, 7.5e-5, 0.25 * np.pi / 180])  
     # CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
     # Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
-    # R = np.diag([0.03, 0.75 * np.pi / 180]) ** 2  
-    # JCBBalphas = np.array([1e-2, 1e-2]) 
-    
-    # Run 2.2
-    # 75% inside NIS
-    # sigmas = np.array([1e-2, 1.25e-2, 0.5 * np.pi / 180])  
-    # CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
-    # Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
-    # R = np.diag([0.04, 0.5 * np.pi / 180]) ** 2 
-    # JCBBalphas = np.array([1e-4, 1e-4]) 
-
+    # R = np.diag([0.1, 0.1 * np.pi / 180]) ** 2 
+    # JCBBalphas = np.array([1e-1, 1e-2]) 
 
     # Run 3
-    sigmas = np.array([1e-5, 1e-5, 1e-4 * np.pi / 180])  
+    sigmas = np.array([1e-2, 1e-2, 0.1 * np.pi / 180])  
     CorrCoeff = np.array([[1, 0, 0], [0, 1, 0.9], [0, 0.9, 1]])
     Q = np.diag(sigmas) @ CorrCoeff @ np.diag(sigmas)
-    R = np.diag([2.5, 2.5 * np.pi / 180]) ** 2  
-    JCBBalphas = np.array([1e-5, 1e-5]) 
+    R = np.diag([1.5, 5 * np.pi / 180]) ** 2  
+    JCBBalphas = np.array([1e-2, 1e-3]) 
 
     sensorOffset = np.array([car.a + car.L, car.b])
     doAsso = True
@@ -177,7 +167,7 @@ def main():
 
 
 # %%  Run
-    N = 5000  # K
+    N = K
 
     err_times = np.zeros((N))
 
@@ -325,6 +315,7 @@ def main():
         e_pos_y = pos_err[:,1]
         e_pos = np.stack([e_pos_x.T, e_pos_y.T])
         pos_err_norm = np.linalg.norm(e_pos, axis=0)
+        pos_rmse = np.sqrt(((pos_err_norm)**2).mean())
 
         fig6.suptitle('Difference between estimated position and GNSS')
 
@@ -335,7 +326,7 @@ def main():
 
         ax6[0].set_title(r"$\mathbf{\delta}x$ [$m$]")
         ax6[1].set_title(r"$\mathbf{\delta}y$ [$m$]")
-        ax6[2].set_title("RMSE")
+        ax6[2].set_title(f"Absolute error with RMSE = {pos_rmse} m")
 
         # for i in range(3):
         #     ax6[i].legend(loc="upper right")
